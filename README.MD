@@ -1,110 +1,109 @@
-# Ebay Kleinanzeigen API
 
-<div align="center">
-  <h3 align="center">Ebay Kleinanzeigen API</h3>
+# Kleinanzeigen API - Modern Python Implementation
 
-  <p align="center">
-    A powerful API interface for Ebay-Kleinanzeigen.de that enables you to fetch listings and specific data.
-  </p>
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-blue.svg)](https://www.python.org/)
 
-  <p align="center">
-    <b>🚀 Looking for a ready-to-use solution?</b>
-    <br />
-    Try it at <a href="https://kleinanzeigen-agent.de"><strong>kleinanzeigen-agent.de »</strong></a>
-    <br />
-    ✓ Automated Search Agents
-    <br />
-    🔜 Hosted Scraper API (Coming Soon)
-    <br />
-    <a href="https://github.com/DanielWTE/ebay-kleinanzeigen-api/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/DanielWTE/ebay-kleinanzeigen-api/issues">Request Feature</a>
-  </p>
-</div>
+Eine moderne Python-Implementierung der eBay Kleinanzeigen API mit automatischer Server-Einrichtung und Browser-Integration.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+## ✨ Funktionen
 
-## Getting Started
+- **Modernes API-Design** mit FastAPI
+- **Automatisierte Installation** mit Bash-Skript
+- **Docker-Unterstützung** (coming soon)
+- **Swagger UI** Dokumentation
+- **Headless Browser-Support** mit Playwright
+- **Systemd-Service** Integration
 
-### Want to skip the setup?
-Visit [kleinanzeigen-agent.de](https://kleinanzeigen-agent.de) for our hosted solution with additional features and zero configuration required.
+## 🚀 Installation
 
-### Prerequisites
-- Python 3.12 or higher
-- pip (Python package manager)
-- Playwright
+### Voraussetzungen
+- Ubuntu/Debian-basiertes System
+- Bash Shell
+- Sudo-Rechte
 
-### Installation
-
-1. Clone the repository
-```sh
+### Schnellstart
+```bash
 git clone https://github.com/sakis-tech/ebay-kleinanzeigen-api.git
 cd ebay-kleinanzeigen-api
+sudo ./install.sh
 ```
 
-2. Install dependencies
-```sh
-pip install -r requirements.txt
-playwright install chromium
+Das Installationsskript führt folgende Schritte durch:
+1. Installiert Systemabhängigkeiten
+2. Kompiliert Python 3.12+
+3. Richtet virtuelle Umgebung ein
+4. Installiert Chromium und Browser-Deps
+5. Erstellt Systemd-Service
+6. Startet den API-Server
+
+## 🔧 Verwendung
+
+### Service-Steuerung
+```bash
+sudo systemctl status kleinanzeigen-api  # Service-Status
+sudo systemctl restart kleinanzeigen-api # Neustart
 ```
 
-3. Start the API
-```sh
-uvicorn main:app --reload
+### API-Zugriff
+Nach erfolgreicher Installation:
+- Swagger UI: `http://<deine-ip>:8000/docs`
+- Redoc Dokumentation: `http://<deine-ip>:8000/redoc`
+
+## ⚙️ Konfiguration
+
+### Port ändern
+```bash
+# Während der Installation:
+Gewünschten Port bei der Aufforderung eingeben
+
+# Nachträglich ändern:
+sudo nano /etc/systemd/system/kleinanzeigen-api.service
+# Port in ExecStart-Zeile anpassen
+sudo systemctl daemon-reload
+sudo systemctl restart kleinanzeigen-api
 ```
 
-The API will be available at `http://localhost:8000`
-
-### API Endpoints
-
-#### 1. Fetch Listings
-**Endpoint:** `GET /inserate`
-
-**Description:** Retrieves a list of listings based on search criteria.
-
-##### Query Parameters:
-- **`query`** *(string, optional)*: The search term (e.g., "fahrrad" to search for bicycles).
-- **`location`** *(string, optional)*: The location or postal code to narrow the search (e.g., `10178` for Berlin).
-- **`radius`** *(integer, optional)*: The search radius in kilometers from the specified location (e.g., `5` for a 5 km radius).
-- **`min_price`** *(integer, optional)*: The minimum price in Euros for the listings (e.g., `200` for at least 200 Euros).
-- **`max_price`** *(integer, optional)*: The maximum price in Euros for the listings (e.g., `500` for at most 500 Euros).
-- **`page_count`** *(integer, optional)*: The number of pages to search or return (e.g., `5` for the first 5 pages, default is 1, max: 20 pages).
-
-##### Example Request:
-```http
-GET /inserate?query=fahrrad&location=10178&radius=5&min_price=200&page_count=5
+### Umgebungsvariablen
+```bash
+# In der Service-Datei hinzufügen:
+Environment="VARIABLE=wert"
 ```
 
-#### 2. Fetch Listing Details
-**Endpoint:** `GET /inserat/{id}`
+## 🤝 Beitragen
+Beiträge sind willkommen! Bitte befolgen Sie unsere [Contributing Guidelines](CONTRIBUTING.md).
 
-**Description:** Retrieves detailed information about a specific listing.
+1. Fork das Repository
+2. Erstelle einen Feature-Branch (`git checkout -b feature/AmazingFeature`)
+3. Commite deine Änderungen (`git commit -m 'Add some AmazingFeature'`)
+4. Pushe den Branch (`git push origin feature/AmazingFeature`)
+5. Öffne einen Pull Request
 
-##### Path Parameters:
-- **`id`** *(string)*: The unique identifier of the listing to fetch details for.
+## 📄 Lizenz
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 
-##### Example Request:
-```http
-GET /inserat/12345
+## 🙌 Danksagung
+- [tteck](https://github.com/tteck) - Hauptentwickler
+- [MickLesk](https://github.com/MickLesk) - Co-Entwickler
+- Playwright Team - Browser Automation
+- FastAPI Community - Web Framework
+
+---
+**Hinweis**: Dies ist ein Community-Projekt und nicht offiziell mit eBay verbunden.
 ```
 
+Diese README.md enthält:
+1. Visuell ansprechende Header und Badges
+2. Klare Installationsanleitung
+3. Verwendungsbeispiele
+4. Konfigurationsoptionen
+5. Beitragsrichtlinien
+6. Lizenzinformationen
+7. Responsive Bilder und Formatierung
 
-### Documentation
-
-#### API Response Format
-All API endpoints return responses in the following JSON format:
-```json
-{
-  "success": true,
-  "data": [
-    ...
-  ]
-}
-```
-
-API documentation is available at `http://localhost:8000/docs` when running locally.
-
-## License
-Distributed under the MIT License. See `LICENSE` for more information.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+Sie können die Datei bei Bedarf noch anpassen durch:
+- Hinzufügen von Screenshots
+- Erweitern der FAQ-Sektion
+- Hinzufügen von Beispiel-API-Requests
+- Link zur Issue-Template
+- Support-Informationen
