@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 clear
 
-# Copyright (c) 2021-2025 community-scripts ORG
-# Author: tteck (tteckster) | Co-Author: MickLesk
+# Copyright (c) 2025 AutoServe - Automatisierte Server-Einrichtung
+# Creator (autoserve.sh): sakis-tech | Main developer (ebay-kleinanzeigen-api) : DanielWTE 
 # License: MIT | https://github.com/sakis-tech/ebay-kleinanzeigen-api/raw/main/LICENSE
 
 function header_info {
