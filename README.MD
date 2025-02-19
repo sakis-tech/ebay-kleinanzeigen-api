@@ -28,6 +28,7 @@ Eine moderne Python-Implementierung der [eBay Kleinanzeigen API](https://github.
 ```bash
 git clone https://github.com/sakis-tech/ebay-kleinanzeigen-api.git
 cd ebay-kleinanzeigen-api
+chmod +x autoserve.sh
 sudo ./autoserve.sh
 ```
 
