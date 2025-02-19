@@ -38,7 +38,7 @@ Visit [kleinanzeigen-agent.de](https://kleinanzeigen-agent.de) for our hosted so
 
 1. Clone the repository
 ```sh
-git clone https://github.com/DanielWTE/ebay-kleinanzeigen-api.git
+git clone https://github.com/sakis-tech/ebay-kleinanzeigen-api.git
 cd ebay-kleinanzeigen-api
 ```
 
