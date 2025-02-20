@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 clear
+
 # Copyright (c) 2025 AutoServe - Automatisierte Server-Einrichtung
 # License: MIT | https://github.com/sakis-tech/ebay-kleinanzeigen-api/raw/main/LICENSE
 
@@ -165,7 +166,7 @@ function validate_version() {
 function setup_swap() {
     local mem_total=$(free -m | awk '/Mem:/ {print $2}')
     if [ -z "$mem_total" ]; then
-        msg_info "Speichererkennung fehlgeschlagen, überspringe Swap-Erstellung${CL}"
+        msg_info "Speichererkennung fehlgeschlagen, überspringe Swap-Erstellung"
         return
     fi
     
@@ -182,7 +183,7 @@ function setup_swap() {
 
 function compile_python() {
     local version=$PYTHON_VERSION
-    msg_info "Kompiliere Python ${version} - Dies kann mehrere Minuten dauern... "
+    msg_info "Kompiliere Python ${version} - Dies kann mehrere Minuten dauern"
     
     sudo mkdir -p "$BUILD_DIR"
     sudo chmod 777 "$BUILD_DIR"
@@ -205,7 +206,7 @@ function compile_python() {
         msg_error "Konfiguration fehlgeschlagen"
 
     local cores=$(nproc)
-    msg_info "Kompilierung gestartet mit ${cores} Kernen - Bitte haben Sie Geduld...${CL}"
+    msg_info "Kompilierung gestartet mit ${cores} Kernen - Bitte haben Sie Geduld"
     make -j$((cores > 2 ? cores-1 : 1)) >> "$LOG_FILE" 2>&1 || \
         msg_error "Kompilierung fehlgeschlagen - Details in $LOG_FILE"
 
@@ -249,7 +250,7 @@ while true; do
 done
 
 if ! confirm_step "Möchten Sie mit der Installation beginnen"; then
-    msg_error "Installation abgebrochen${CL}"
+    msg_error "Installation abgebrochen"
     exit 0
 fi
 
