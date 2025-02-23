@@ -116,6 +116,11 @@ function check_port_available() {
     msg_ok "Port ${GN}$DEFAULT_PORT${CL} ist verfügbar."
 }
 
+# Überprüfe PATH-Variablen
+if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
+    export PATH="/usr/local/bin:$PATH"
+fi
+
 # Systemdienst erstellen
 function create_systemd_service() {
     local service_content="[Unit]
