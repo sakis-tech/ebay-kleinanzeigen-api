@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
+
+# --------------------------------------------------------------------------------
+# Initialisierung und Header
+# --------------------------------------------------------------------------------
+
 clear
 
-# Copyright (c) 2025 AutoServe - Automatisierte Server-Einrichtung
+# Creator (autoserve.sh): sakis-tech | Main developer (ebay-kleinanzeigen-api) : DanielWTE 
 # License: MIT | https://github.com/sakis-tech/ebay-kleinanzeigen-api/raw/main/LICENSE
 
 function header_info {
     echo -e "\033[1;36m    ___         __      _____"
     echo -e "   /   | __  __/ /_____/ ___/___  ______   \033[1;34m____"
-    echo -e "  / /| |/ / / / __/ __ \\\\__ \/ _ \/ ___/ |\033[1;36m / /_ \\\\"
+    echo -e "  / /| |/ / / / __/ __ \\\\__ \/ _ \/ ___/ |\033[1;36m / /_ \\"
     echo -e " / ___ / /_/ / /_/ /_/ /__/   __/  /  | |\033[1;34m/ / __/"
     echo -e "/_/  |_\\\\__,_/\\\\__/\\\\____/____/\\\\___/_/   |___\033[1;36m/\\\\___/"
     echo -e "\033[1;34m═══════════════════════════════════════════════════"
@@ -17,7 +22,7 @@ function header_info {
     echo
 }
 
-# Farbdefinitionen
+# Farbdefinitionen für bessere Lesbarkeit
 YW=$(tput setaf 3)  # Gelb
 GN=$(tput setaf 2)  # Grün
 RD=$(tput setaf 1)  # Rot
@@ -25,15 +30,15 @@ BL=$(tput setaf 4)  # Blau
 CY=$(tput setaf 6)  # Cyan
 CL=$(tput sgr0)     # Reset
 
-# Konfiguration
+# Konfiguration der Variablen
 APP="Kleinanzeigen-API"
-INSTALL_DIR="/opt/kleinanzeigen-api"
-SERVICE_PATH="/etc/systemd/system/kleinanzeigen-api.service"
-BUILD_DIR="/usr/src/python_build"
-IP=$(hostname -I | awk '{print $1}')
-DEFAULT_PORT=8000
-LOG_FILE="/tmp/python_build.log"
-PYTHON_VERSION=""
+INSTALL_DIR="/opt/kleinanzeigen-api"          # Installationsverzeichnis
+SERVICE_PATH="/etc/systemd/system/kleinanzeigen-api.service"  # Pfad zur Systemd-Service-Datei
+BUILD_DIR="/usr/src/python_build"            # Build-Verzeichnis für Python-Kompilierung
+IP=$(hostname -I | awk '{print $1}')         # IP-Adresse des Servers
+DEFAULT_PORT=8000                            # Standardport für die API
+LOG_FILE="/tmp/python_build.log"             # Log-Datei für Installationsschritte
+PYTHON_VERSION=""                            # Python-Version (wird später vom Benutzer eingegeben)
 
 header_info
 
@@ -45,83 +50,165 @@ echo -e "${GN}Es werden automatisch alle erforderlichen Pakete installiert.${CL}
 read -n 1 -s -r -p "${YW}Drücken Sie eine beliebige Taste, um fortzufahren...${CL}"
 echo -e "\n"
 
+# --------------------------------------------------------------------------------
 # Funktionen
+# --------------------------------------------------------------------------------
+
+# Informationsnachricht
 function msg_info() {
     echo -e "${YW}═══════════════════════════════════════════════════════════════════════════════"
     echo -e "${YW}💡 ${1}${CL}"
     echo -e "${YW}═══════════════════════════════════════════════════════════════════════════════"
+	echo -e "${CL}"
 }
 
+# Erfolgsnachricht
 function msg_ok() {
     echo -e "${GN}═══════════════════════════════════════════════════════════════════════════════"
     echo -e "${GN}✅ ${1}${CL}"
     echo -e "${GN}═══════════════════════════════════════════════════════════════════════════════"
+	echo -e "${CL}"
 }
 
+# Fehlermeldung
 function msg_error() {
     echo -e "${RD}═══════════════════════════════════════════════════════════════════════════════"
     echo -e "${RD}❎ ${1}${CL}"
     echo -e "${RD}═══════════════════════════════════════════════════════════════════════════════"
-    exit 1
+	echo -e "${CL}"
+    exit 1	
 }
 
+# Bestätigungsabfrage
 function confirm_step() {
     echo -e "${YW}═══════════════════════════════════════════════════════════════════════════════"
     echo -e "${YW}💡 ${1}${CL}"
     echo -e "${YW}═══════════════════════════════════════════════════════════════════════════════"
     read -p "${YW}Antwort (y/N): ${CL}" -n 1 -r
-    echo -e "\n"  
+    echo -e "\n"
+	echo -e "${CL}"
     [[ $REPLY =~ ^[Yy]$ ]]
 }
 
+# Python-Version validieren
 function validate_version() {
     local version=$1
     if [[ ! $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        msg_error "Ungültiges Format. Bitte im Format X.Y.Z eingeben (z.B. 3.12.3)"
+        msg_error "Ungültiges Format. Bitte im Format X.Y.Z eingeben (z.B. 3.12.3)."
         return 1
     fi
-    
+
     IFS='.' read -r -a parts <<< "$version"
-    if [[ ${parts[0]} -ne 3 ]] || [[ ${parts[1]} -lt 12 ]]; then
+    if (( ${parts[0]} < 3 )) || (( ${parts[1]} < 12 )); then
         msg_error "Mindestanforderung: Python 3.12.0 oder höher!"
         return 1
     fi
-    
+
     return 0
 }
 
+# Port-Auswahl (benutzerdefiniert)
+read -p "${YW}Wählen Sie einen Port für die API (Standard: $DEFAULT_PORT): ${CL}" chosen_port
+chosen_port=${chosen_port:-$DEFAULT_PORT}
+DEFAULT_PORT=$chosen_port
+
+# Systemdienst erstellen
+function create_systemd_service() {
+    local service_content="[Unit]
+Description=Kleinanzeigen API Service
+After=network.target
+
+[Service]
+User=$USER
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/.venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port $DEFAULT_PORT
+Restart=always
+
+[Install]
+WantedBy=multi-user.target"
+
+    # Prüfen, ob der Dienst bereits existiert
+    if [[ -f "$SERVICE_PATH" ]]; then
+        msg_info "Aktualisiere Systemdienst-Datei für neuen Port..."
+        sudo rm -f "$SERVICE_PATH" || msg_error "Löschen der bestehenden Dienst-Datei fehlgeschlagen."
+    fi
+
+    echo "$service_content" | sudo tee "$SERVICE_PATH" > /dev/null || \
+        msg_error "Erstellung der Systemd-Service-Datei fehlgeschlagen."
+
+    # Daemon neu laden
+    sudo systemctl daemon-reload || msg_error "Daemon-Reload fehlgeschlagen."
+
+    # Dienst aktivieren
+    sudo systemctl enable kleinanzeigen-api.service || msg_error "Service konnte nicht aktiviert werden."
+
+    # Stopp des laufenden Dienstes (falls vorhanden)
+    if sudo systemctl is-active --quiet kleinanzeigen-api.service; then
+        sudo systemctl stop kleinanzeigen-api.service || msg_error "Beenden des Dienstes fehlgeschlagen."
+    fi
+
+    # Starten des Dienstes mit dem neuen Port
+    sudo systemctl start kleinanzeigen-api.service || msg_error "Starten des Dienstes fehlgeschlagen."
+
+    msg_ok "Systemdienst erfolgreich erstellt und gestartet."
+}
+
+# Funktion zur Installation von Voraussetzungen
+function install_prerequisites() {
+    msg_info "Installiere erforderliche Tools"
+    local tools=("net-tools" "curl")
+    for tool in "${tools[@]}"; do
+        if ! command -v $(echo "$tool" | cut -d '-' -f1) &>/dev/null; then
+            sudo apt update >> "$LOG_FILE" 2>&1 || \
+                msg_error "Aktualisierung der Paketquellen fehlgeschlagen."
+            sudo apt install -y "$tool" >> "$LOG_FILE" 2>&1 || \
+                msg_error "Installation von $tool fehlgeschlagen."
+        else
+            msg_ok "$tool ist bereits installiert."
+        fi
+    done
+}
+
+# Funktion zur Aktualisierung von pip
+function upgrade_pip() {
+    msg_info "Aktualisiere pip auf die neueste Version..."
+    python3 -m pip install --upgrade pip >> "$LOG_FILE" 2>&1 || \
+        msg_error "Pip-Aktualisierung fehlgeschlagen."
+    msg_ok "Pip wurde erfolgreich aktualisiert."
+}
+
+# Projekt einrichten
 function setup_project() {
     msg_info "Richte Projekt ein"
-    
-    sudo mkdir -p "$INSTALL_DIR"
-    sudo chown -R $USER:$USER "$INSTALL_DIR"
-    
-    git clone -q https://github.com/sakis-tech/ebay-kleinanzeigen-api.git "$INSTALL_DIR" || \
-        msg_error "Klonen fehlgeschlagen"
-    
-    cd "$INSTALL_DIR" || msg_error "Verzeichniswechsel fehlgeschlagen"
 
-    # Browser-Abhängigkeiten
-    sudo apt install -y \
-        libx11-xcb1 libdrm2 libgbm1 libasound2 libxcomposite1 \
-        libxrandr2 libxkbcommon0 >> "$LOG_FILE" 2>&1
+    sudo mkdir -p "$INSTALL_DIR" || msg_error "Erstellung von $INSTALL_DIR fehlgeschlagen."
+    sudo chown -R $USER:$USER "$INSTALL_DIR" || msg_error "Berechtigungen für $INSTALL_DIR konnten nicht gesetzt werden."
+
+    git clone -q https://github.com/sakis-tech/ebay-kleinanzeigen-api.git "$INSTALL_DIR" || \
+        msg_error "Klonen des Repositoriums fehlgeschlagen."
+
+    cd "$INSTALL_DIR" || msg_error "Wechsel zu $INSTALL_DIR fehlgeschlagen."
 
     # Virtuelle Umgebung
-    python3 -m venv .venv || msg_error "Virtuelle Umgebung fehlgeschlagen"
-    source .venv/bin/activate
+    python3 -m venv .venv || msg_error "Erstellung der virtuellen Umgebung fehlgeschlagen."
+    source .venv/bin/activate || msg_error "Aktivierung der virtuellen Umgebung fehlgeschlagen."
+
+    # Pip aktualisieren
+    upgrade_pip
 
     # Pakete installieren
-    pip install -q -r requirements.txt || msg_error "Paketinstallation fehlgeschlagen"
+    pip install -q -r requirements.txt || msg_error "Installation der Python-Pakete fehlgeschlagen."
 
     # Installiere nur Chromium
     msg_info "Installiere Chromium"
     python -m playwright install chromium >> "$LOG_FILE" 2>&1 || \
-        msg_error "Playwright-Installation fehlgeschlagen"
+        msg_error "Playwright-Chromium-Installation fehlgeschlagen."
 }
 
+# Systemabhängigkeiten installieren
 function install_dependencies() {
-    msg_info "Installiere Systemabhängigkeiten"
-    
+    msg_info "Installiere Systemabhängigkeiten."
+
     local deps=(
         build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev
         libssl-dev libreadline-dev libffi-dev libbz2-dev libsqlite3-dev
@@ -130,27 +217,28 @@ function install_dependencies() {
         python3-packaging python3-venv
     )
 
-    if ! sudo apt update >> "$LOG_FILE" 2>&1 || \
-       ! sudo apt install -y "${deps[@]}" >> "$LOG_FILE" 2>&1; then
+    if ! { sudo apt update >> "$LOG_FILE" 2>&1 && sudo apt install -y "${deps[@]}" >> "$LOG_FILE" 2>&1; }; then
         msg_error "Paketinstallation fehlgeschlagen - siehe $LOG_FILE"
     fi
-    msg_ok "Systemabhängigkeiten installiert"
+
+    msg_ok "Systemabhängigkeiten installiert."
 }
 
+# Python kompilieren
 function compile_python() {
     local version=$PYTHON_VERSION
-    msg_info "Kompiliere Python ${version} - Dies kann mehrere Minuten dauern"
-    
-    sudo mkdir -p "$BUILD_DIR"
-    sudo chmod 777 "$BUILD_DIR"
-    cd "$BUILD_DIR" || msg_error "Verzeichniswechsel fehlgeschlagen"
+    msg_info "Kompiliere Python ${version} - Dies kann mehrere Minuten dauern."
+
+    sudo mkdir -p "$BUILD_DIR" || msg_error "Erstellung von $BUILD_DIR fehlgeschlagen."
+    sudo chmod 777 "$BUILD_DIR" || msg_error "Berechtigungen für $BUILD_DIR konnten nicht gesetzt werden."
+    cd "$BUILD_DIR" || msg_error "Wechsel zu $BUILD_DIR fehlgeschlagen."
 
     if ! wget -q "https://www.python.org/ftp/python/${version}/Python-${version}.tgz"; then
-        msg_error "Download der Python-Version ${version} fehlgeschlagen"
+        msg_error "Download der Python-Version ${version} fehlgeschlagen."
     fi
 
-    tar xzf "Python-${version}.tgz" || msg_error "Entpacken fehlgeschlagen"
-    cd "Python-${version}" || msg_error "Verzeichniswechsel fehlgeschlagen"
+    tar xzf "Python-${version}.tgz" || msg_error "Entpacken fehlgeschlagen."
+    cd "Python-${version}" || msg_error "Wechsel zu Python-${version}-Verzeichnis fehlgeschlagen."
 
     ./configure \
         --enable-optimizations \
@@ -159,60 +247,121 @@ function compile_python() {
         --with-system-ffi \
         --enable-loadable-sqlite-extensions \
         CFLAGS="-fPIC -Wno-error=deprecated-declarations" >> "$LOG_FILE" 2>&1 || \
-        msg_error "Konfiguration fehlgeschlagen"
+        msg_error "Konfiguration fehlgeschlagen."
 
     local cores=$(nproc)
-    msg_info "Kompilierung gestartet mit ${cores} Kernen - Bitte haben Sie Geduld"
+    msg_info "Kompilierung gestartet mit ${cores} Kernen - Bitte haben Sie Geduld.${CL}"
     make -j$((cores > 2 ? cores-1 : 1)) >> "$LOG_FILE" 2>&1 || \
         msg_error "Kompilierung fehlgeschlagen - Details in $LOG_FILE"
 
     sudo make altinstall >> "$LOG_FILE" 2>&1 || \
-        msg_error "Installation fehlgeschlagen"
+        msg_error "Installation fehlgeschlagen."
 
-    sudo update-alternatives --install /usr/local/bin/python3 python3 \
-        "/usr/local/bin/python${version%.*}" 10
-    sudo update-alternatives --set python3 "/usr/local/bin/python${version%.*}"
+    sudo update-alternatives --install /usr/local/bin/python3 python3 "/usr/local/bin/python${version%.*}" 10 || \
+        msg_error "Update-Alternatives-Konfiguration fehlgeschlagen."
+    sudo update-alternatives --set python3 "/usr/local/bin/python${version%.*}" || \
+        msg_error "Setzen der Python-Version fehlgeschlagen."
 
-    msg_ok "Python ${version} erfolgreich installiert"
+    msg_ok "Python ${version} erfolgreich installiert."
 }
 
+# Prüfen, ob der Port verfügbar ist
+function check_port_available() {
+    local port=$DEFAULT_PORT
+    while netstat -tuln | grep -q ":$port "; do
+        msg_error "Port $port ist bereits belegt."
+        read -p "${YW}Bitte geben Sie einen anderen Port ein: ${CL}" new_port
+        if [[ -z "$new_port" ]]; then
+            msg_error "Port darf nicht leer sein."
+            continue
+        fi
+        if ! [[ "$new_port" =~ ^[0-9]+$ ]]; then
+            msg_error "Ungültige Eingabe. Bitte geben Sie eine numerische Portnummer ein."
+            continue
+        fi
+        port=$new_port
+    done
+    DEFAULT_PORT=$port
+    msg_ok "Port $DEFAULT_PORT ist verfügbar."
+}
+
+
+# Fehler in die Log-Datei schreiben
+function log_error() {
+    echo -e "${RD}Error: $1${CL}" >> "$LOG_FILE"
+    msg_error "$1"
+}
+
+# --------------------------------------------------------------------------------
 # Hauptausführung
+# --------------------------------------------------------------------------------
+
+# Port-Prüfung
+check_port_available
+
 msg_info "Installationsprotokoll wird geschrieben nach: $LOG_FILE"
 
 # Python-Version Eingabe
 while true; do
-    read -p "${YW}Gewünschte Python-Version (mind. 3.12.0): ${CL}" PYTHON_VERSION
+    read -p "${YW}Gewünschte Python-Version eintragen und bestätigen (mind. 3.12.0): ${CL}" PYTHON_VERSION
     if validate_version "$PYTHON_VERSION"; then
         break
     fi
 done
 
-if ! confirm_step "Möchten Sie mit der Installation beginnen"; then
-    msg_error "Installation abgebrochen"
+if ! confirm_step "Möchten Sie mit der Installation beginnen?"; then
+    msg_error "Installation abgebrochen."
     exit 0
 fi
 
-# Installationsschritte
-install_dependencies
+# Kompiliert Python
 compile_python
+
+# Installationsschritte
+install_prerequisites
+install_dependencies
 setup_project
 
+# Systemdienst erstellen
+create_systemd_service
+
 # Nach der Installation
-msg_ok "${GN}Installation erfolgreich abgeschlossen!${CL}"
-echo -e "\n${YW}Zugangslinks:"
-echo -e "  ${GN}• API Dokumentation: ${CY}🌐 http://$IP:$DEFAULT_PORT/docs"
-echo -e "  ${GN}• Swagger UI:        ${CY}🌐 http://$IP:$DEFAULT_PORT/redoc"
-echo -e "\n${YW}Serviceverwaltung:"
-echo -e "  ${GN}sudo systemctl [start|stop|restart] kleinanzeigen-api.service${CL}\n"
+msg_ok "ebay-kleinanzeigen API wurde erfolgreich installiert!"
+echo -e "\033[1;34m═══════════════════════════════════════════════════════════════════════════════"
+echo -e "${GN}API-Zugriffspunkte:${CL}"
+echo -e "  ${YW}• Dokumentation (Swagger):${CL} ${CY}http://$IP:$DEFAULT_PORT/docs${CL}"
+echo -e "  ${YW}• Interaktive Dokumentation (Redoc):${CL} ${CY}http://$IP:$DEFAULT_PORT/redoc${CL}"
+
+echo -e "\033[1;34m═══════════════════════════════════════════════════════════════════════════════"
+echo -e "${GN}Serviceverwaltung:${CL}"
+echo -e "  ${YW}• Starten:${CL} ${CY}sudo systemctl start kleinanzeigen-api.service${CL}"
+echo -e "  ${YW}• Stoppen:${CL} ${CY}sudo systemctl stop kleinanzeigen-api.service${CL}"
+echo -e "  ${YW}• Neustarten:${CL} ${CY}sudo systemctl restart kleinanzeigen-api.service${CL}"
+echo -e "  ${YW}• Status prüfen:${CL} ${CY}sudo systemctl status kleinanzeigen-api.service${CL}"
+
+echo -e "\033[1;34m═══════════════════════════════════════════════════════════════════════════════"
+echo -e "${GN}Protokolle und Logs:${CL}"
+echo -e "  ${YW}• Installationsprotokoll:${CL} ${CY}$LOG_FILE${CL}"
+echo -e "  ${YW}• Dienstprotokoll:${CL} ${CY}journalctl -u kleinanzeigen-api.service${CL}"
+
+echo -e "\033[1;34m═══════════════════════════════════════════════════════════════════════════════"
+echo -e "${GN}Hinweise:${CL}"
+echo -e "  ${YW}• Der API-Dienst läuft auf Port ${CY}$DEFAULT_PORT${CL}."
+echo -e "  ${YW}• Wenn Sie Probleme haben, überprüfen Sie die Log-Dateien.${CL}"
+
+msg_ok "Die Installation wurde am $(date) abgeschlossen."
 
 # Bereinigung
-if confirm_step "Möchten Sie temporäre Build-Dateien löschen"; then
+if confirm_step "Möchten Sie temporäre Build-Dateien löschen?"; then
     msg_info "Bereinige Build-Verzeichnis"
     sudo rm -rf "$BUILD_DIR"
-    sudo apt autoremove -yq >> "$LOG_FILE" 2>&1
-    sudo apt clean -yq >> "$LOG_FILE" 2>&1
     find "$INSTALL_DIR" -type d -name "__pycache__" -exec rm -rf {} +
-    msg_ok "Bereinigung abgeschlossen"
+    msg_ok "Bereinigung abgeschlossen."
 fi
 
-msg_info "Installation abgeschlossen am $(date)${CL}"
+if confirm_step "Möchten Sie altes Paket-Cache löschen?"; then
+    msg_info "Bereinige Paket-Cache!"
+    sudo apt autoremove -yq >> "$LOG_FILE" 2>&1
+    sudo apt clean -yq >> "$LOG_FILE" 2>&1
+    msg_ok "Paket-Cache erfolgreich bereinigt."
+fi
