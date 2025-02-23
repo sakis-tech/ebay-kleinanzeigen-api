@@ -247,7 +247,6 @@ function compile_python() {
     ./configure \
         --enable-optimizations \
         --with-lto \
-        --with-system-expat \
         --enable-loadable-sqlite-extensions \
         CFLAGS="-fPIC -Wno-error=deprecated-declarations" >> "$LOG_FILE" 2>&1 || \
         msg_error "Konfiguration fehlgeschlagen."
@@ -313,10 +312,31 @@ else
     msg_error "Die Installation wurde abgebrochen, da erforderliche Tools nicht installiert wurden."
 fi
 
-# Port-Auswahl (benutzerdefiniert)
+# Port-Auswahl und -Prüfung
 read -p "${YW}Wählen Sie einen Port für die API (Standard: $DEFAULT_PORT): ${CL}" chosen_port
 chosen_port=${chosen_port:-$DEFAULT_PORT}
-DEFAULT_PORT=$chosen_port
+
+# Prüfen, ob der Port verfügbar ist
+function check_port_available() {
+    local port=$1
+    while netstat -tuln | grep -q ":$port "; do
+        msg_error "Port ${YW}$port${RD} ist bereits belegt."
+        read -p "${YW}Bitte geben Sie einen anderen Port ein: ${CL}" new_port
+        if [[ -z "$new_port" ]]; then
+            msg_error "Port darf nicht leer sein."
+            continue
+        fi
+        if ! [[ "$new_port" =~ ^[0-9]+$ ]]; then
+            msg_error "Ungültige Eingabe. Bitte geben Sie eine numerische Portnummer ein."
+            continue
+        fi
+        port=$new_port
+    done
+    msg_ok "Port ${GN}$port${CL} ist verfügbar."
+    echo "$port"  # Gibt den gültigen Port zurück
+}
+
+DEFAULT_PORT=$(check_port_available "$chosen_port")
 
 # Installationsprotokoll
 msg_info "Installationsprotokoll wird geschrieben nach: ${GN}$LOG_FILE${CL}"
