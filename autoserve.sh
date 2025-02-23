@@ -40,6 +40,12 @@ DEFAULT_PORT=8000                            # Standardport für die API
 LOG_FILE="/tmp/python_build.log"             # Log-Datei für Installationsschritte
 PYTHON_VERSION=""                            # Python-Version (wird später vom Benutzer eingegeben)
 
+header_info
+
+# --------------------------------------------------------------------------------
+# Funktionen
+# --------------------------------------------------------------------------------
+
 # Informationsnachricht
 function msg_info() {
     echo -e "${YW}═══════════════════════════════════════════════════════════════════════════════"
@@ -72,32 +78,6 @@ function confirm_step() {
     echo -e "\n"
     [[ $REPLY =~ ^[Yy]$ ]]
 }
-
-header_info
-
-# Willkommensnachricht und Bestätigung
-msg_info "Willkommen bei der Einrichtung der Kleinanzeigen-API"
-
-echo -e "${GN}Dieses Skript führt Sie durch die Installation der Kleinanzeigen-API.${CL}"
-echo -e "${GN}Es werden automatisch folgende Schritte ausgeführt:${CL}"
-echo -e "  ${YW}• Überprüfung und Installierung der benötigten Systemabhängigkeiten${CL}"
-echo -e "  ${YW}• Kompilierung und Installation einer spezifischen Python-Version (mind. 3.12.0)${CL}"
-echo -e "  ${YW}• Einrichtung von Kleinanzeigen-API mit virtueller Umgebung und erforderlichen Paketen${CL}"
-echo -e "  ${YW}• Konfiguration eines Systemdienstes zur besseren Verwaltung${CL}"
-echo -e "  ${YW}• Optional: Bereinigung temporärer Dateien und Cache-Optimierung${CL}"
-echo -e "\n"
-
-read -n 1 -s -r -p "${YW}Drücken Sie eine beliebige Taste, um fortzufahren...${CL}"
-echo -e "\n"
-
-# Port-Auswahl (benutzerdefiniert)
-read -p "${YW}Wählen Sie einen Port für die API (Standard: $DEFAULT_PORT): ${CL}" chosen_port
-chosen_port=${chosen_port:-$DEFAULT_PORT}
-DEFAULT_PORT=$chosen_port
-
-# --------------------------------------------------------------------------------
-# Funktionen
-# --------------------------------------------------------------------------------
 
 # Python-Version validieren
 function validate_version() {
@@ -173,10 +153,11 @@ WantedBy=multi-user.target"
 
 # Funktion zur Installation von Voraussetzungen
 function install_prerequisites() {
-    msg_info "Installiere erforderliche Tools"
+    msg_info "Installiere erforderliche Tools (net-tools, curl)"
     local tools=("net-tools" "curl")
     for tool in "${tools[@]}"; do
         if ! command -v $(echo "$tool" | cut -d '-' -f1) &>/dev/null; then
+            msg_info "Installiere $tool..."
             sudo apt update >> "$LOG_FILE" 2>&1 || \
                 msg_error "Aktualisierung der Paketquellen fehlgeschlagen."
             sudo apt install -y "$tool" >> "$LOG_FILE" 2>&1 || \
@@ -230,7 +211,7 @@ function install_dependencies() {
     local deps=(
         build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev
         libssl-dev libreadline-dev libffi-dev libbz2-dev libsqlite3-dev
-        liblzma-dev tk-dev libdb5.3-dev uuid-dev libgpm2 libxml2-dev 
+        liblzma-dev tk-dev libdb5.3-dev uuid-dev libgpm2 libxml2-dev
         libxmlsec1-dev mlocate libreadline-dev libffi-dev liblzma-dev lzma
         python3-packaging python3-venv
     )
@@ -283,14 +264,57 @@ function compile_python() {
     msg_ok "Python ${version} erfolgreich installiert."
 }
 
+# API-Status prüfen
+function check_api_health() {
+    local url="http://$IP:$DEFAULT_PORT/docs"
+    if command -v curl &>/dev/null; then
+        if curl -s -o /dev/null -w "%{http_code}" "$url" | grep -q "200"; then
+            msg_ok "API ist erreichbar unter ${GN}$url${CL}"
+        else
+            msg_error "API ist nicht erreichbar. Bitte überprüfen Sie den Dienst."
+        fi
+    elif command -v wget &>/dev/null; then
+        if wget --spider -q "$url"; then
+            msg_ok "API ist erreichbar unter ${GN}$url${CL}"
+        else
+            msg_error "API ist nicht erreichbar. Bitte überprüfen Sie den Dienst."
+        fi
+    else
+        msg_error "Weder curl noch wget sind installiert. Installieren Sie eines davon, um die API-Statusüberprüfung durchzuführen."
+    fi
+}
+
 # --------------------------------------------------------------------------------
 # Hauptausführung
 # --------------------------------------------------------------------------------
 
-# Port-Prüfung
-check_port_available
+# Willkommensnachricht und Bestätigung
+msg_info "Willkommen bei der Einrichtung der Kleinanzeigen-API"
 
-# Infos bzw. Log
+echo -e "${GN}Dieses Skript führt Sie durch die Installation der Kleinanzeigen-API.${CL}"
+echo -e "${GN}Es werden automatisch folgende Schritte ausgeführt:${CL}"
+echo -e "  ${YW}• Überprüfung und Installierung der benötigten Systemabhängigkeiten${CL}"
+echo -e "  ${YW}• Kompilierung und Installation einer spezifischen Python-Version (mind. 3.12.0)${CL}"
+echo -e "  ${YW}• Einrichtung von Kleinanzeigen-API mit virtueller Umgebung und erforderlichen Paketen${CL}"
+echo -e "  ${YW}• Konfiguration eines Systemdienstes zur besseren Verwaltung${CL}"
+echo -e "  ${YW}• Optional: Bereinigung temporärer Dateien und Cache-Optimierung${CL}"
+
+read -n 1 -s -r -p "${YW}Drücken Sie eine beliebige Taste, um fortzufahren...${CL}"
+echo -e "\n"
+
+# Bestätigung zur Installation von Voraussetzungen
+if confirm_step "Möchten Sie erforderliche Tools (wie net-tools, curl) installieren?"; then
+    install_prerequisites
+else
+    msg_error "Die Installation wurde abgebrochen, da erforderliche Tools nicht installiert wurden."
+fi
+
+# Port-Auswahl (benutzerdefiniert)
+read -p "${YW}Wählen Sie einen Port für die API (Standard: $DEFAULT_PORT): ${CL}" chosen_port
+chosen_port=${chosen_port:-$DEFAULT_PORT}
+DEFAULT_PORT=$chosen_port
+
+# Installationsprotokoll
 msg_info "Installationsprotokoll wird geschrieben nach: ${GN}$LOG_FILE${CL}"
 
 # Python-Version Eingabe
@@ -306,10 +330,6 @@ if ! confirm_step "Möchten Sie mit der Installation beginnen?"; then
     exit 0
 fi
 
-# Installationsschritte
-install_prerequisites
-install_dependencies
-
 # Prüfe, ob Python bereits installiert ist
 if command -v "python${PYTHON_VERSION%.*}" &>/dev/null; then
     msg_ok "Python ${PYTHON_VERSION} ist bereits installiert."
@@ -317,11 +337,19 @@ else
     compile_python
 fi
 
-# Kleinanzeigen-API einrichten
+# Installationsschritte
+install_dependencies
 setup_project
+
+# Port-Prüfung
+check_port_available
 
 # Systemdienst erstellen
 create_systemd_service
+
+# API-Status prüfen
+msg_info "Überprüfe API-Status..."
+check_api_health
 
 # Nach der Installation
 msg_ok "ebay-kleinanzeigen API wurde erfolgreich installiert!"
