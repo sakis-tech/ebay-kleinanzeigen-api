@@ -22,6 +22,7 @@ YW=$(tput setaf 3)  # Gelb
 GN=$(tput setaf 2)  # Grün
 RD=$(tput setaf 1)  # Rot
 BL=$(tput setaf 4)  # Blau
+CY=$(tput setaf 6)  # Cyan
 CL=$(tput sgr0)     # Reset
 
 # Konfiguration
@@ -197,16 +198,20 @@ compile_python
 setup_project
 
 # Nach der Installation
-echo -e "\n"
-msg_ok "INSTALLATION ERFOLGREICH"
-msg_info "API Dokumentation: ${GN}🌐 http://$IP:$DEFAULT_PORT/docs${CL}"
-msg_info "Swagger UI: ${GN}🌐 http://$IP:$DEFAULT_PORT/redoc${CL}"
-echo -e "\n"
+msg_ok "${GN}Installation erfolgreich abgeschlossen!${CL}"
+echo -e "\n${YW}Zugangslinks:"
+echo -e "  ${GN}• API Dokumentation: ${CY}🌐 http://$IP:$DEFAULT_PORT/docs"
+echo -e "  ${GN}• Swagger UI:        ${CY}🌐 http://$IP:$DEFAULT_PORT/redoc"
+echo -e "\n${YW}Serviceverwaltung:"
+echo -e "  ${GN}sudo systemctl [start|stop|restart] kleinanzeigen-api.service${CL}\n"
 
 # Bereinigung
 if confirm_step "Möchten Sie temporäre Build-Dateien löschen"; then
     msg_info "Bereinige Build-Verzeichnis"
     sudo rm -rf "$BUILD_DIR"
+    sudo apt autoremove -yq >> "$LOG_FILE" 2>&1
+    sudo apt clean -yq >> "$LOG_FILE" 2>&1
+    find "$INSTALL_DIR" -type d -name "__pycache__" -exec rm -rf {} +
     msg_ok "Bereinigung abgeschlossen"
 fi
 
