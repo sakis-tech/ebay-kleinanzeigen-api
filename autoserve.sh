@@ -6,7 +6,7 @@
 
 clear
 
-# Creator (autoserve.sh): sakis-tech | Main developer (ebay-kleinanzeigen-api) : DanielWTE 
+# Creator (autoserve.sh): sakis-tech | Main developer (ebay-kleinanzeigen-api): DanielWTE
 # License: MIT | https://github.com/sakis-tech/ebay-kleinanzeigen-api/raw/main/LICENSE
 
 function header_info {
@@ -50,6 +50,11 @@ echo -e "${GN}Es werden automatisch alle erforderlichen Pakete installiert.${CL}
 read -n 1 -s -r -p "${YW}Drücken Sie eine beliebige Taste, um fortzufahren...${CL}"
 echo -e "\n"
 
+# Port-Auswahl (benutzerdefiniert)
+read -p "${YW}Wählen Sie einen Port für die API (Standard: $DEFAULT_PORT): ${CL}" chosen_port
+chosen_port=${chosen_port:-$DEFAULT_PORT}
+DEFAULT_PORT=$chosen_port
+
 # --------------------------------------------------------------------------------
 # Funktionen
 # --------------------------------------------------------------------------------
@@ -59,7 +64,6 @@ function msg_info() {
     echo -e "${YW}═══════════════════════════════════════════════════════════════════════════════"
     echo -e "${YW}💡 ${1}${CL}"
     echo -e "${YW}═══════════════════════════════════════════════════════════════════════════════"
-	echo -e "${CL}"
 }
 
 # Erfolgsnachricht
@@ -67,7 +71,6 @@ function msg_ok() {
     echo -e "${GN}═══════════════════════════════════════════════════════════════════════════════"
     echo -e "${GN}✅ ${1}${CL}"
     echo -e "${GN}═══════════════════════════════════════════════════════════════════════════════"
-	echo -e "${CL}"
 }
 
 # Fehlermeldung
@@ -75,8 +78,8 @@ function msg_error() {
     echo -e "${RD}═══════════════════════════════════════════════════════════════════════════════"
     echo -e "${RD}❎ ${1}${CL}"
     echo -e "${RD}═══════════════════════════════════════════════════════════════════════════════"
-	echo -e "${CL}"
-    exit 1	
+    echo -e "${CL}"  # Terminalfarbe zurücksetzen
+    exit 1
 }
 
 # Bestätigungsabfrage
@@ -86,7 +89,6 @@ function confirm_step() {
     echo -e "${YW}═══════════════════════════════════════════════════════════════════════════════"
     read -p "${YW}Antwort (y/N): ${CL}" -n 1 -r
     echo -e "\n"
-	echo -e "${CL}"
     [[ $REPLY =~ ^[Yy]$ ]]
 }
 
@@ -107,10 +109,25 @@ function validate_version() {
     return 0
 }
 
-# Port-Auswahl (benutzerdefiniert)
-read -p "${YW}Wählen Sie einen Port für die API (Standard: $DEFAULT_PORT): ${CL}" chosen_port
-chosen_port=${chosen_port:-$DEFAULT_PORT}
-DEFAULT_PORT=$chosen_port
+# Prüfen, ob der Port verfügbar ist
+function check_port_available() {
+    local port=$DEFAULT_PORT
+    while netstat -tuln | grep -q ":$port "; do
+        msg_error "Port ${YW}$port${RD} ist bereits belegt."
+        read -p "${YW}Bitte geben Sie einen anderen Port ein: ${CL}" new_port
+        if [[ -z "$new_port" ]]; then
+            msg_error "Port darf nicht leer sein."
+            continue
+        fi
+        if ! [[ "$new_port" =~ ^[0-9]+$ ]]; then
+            msg_error "Ungültige Eingabe. Bitte geben Sie eine numerische Portnummer ein."
+            continue
+        fi
+        port=$new_port
+    done
+    DEFAULT_PORT=$port
+    msg_ok "Port ${GN}$DEFAULT_PORT${CL} ist verfügbar."
+}
 
 # Systemdienst erstellen
 function create_systemd_service() {
@@ -127,28 +144,12 @@ Restart=always
 [Install]
 WantedBy=multi-user.target"
 
-    # Prüfen, ob der Dienst bereits existiert
-    if [[ -f "$SERVICE_PATH" ]]; then
-        msg_info "Aktualisiere Systemdienst-Datei für neuen Port..."
-        sudo rm -f "$SERVICE_PATH" || msg_error "Löschen der bestehenden Dienst-Datei fehlgeschlagen."
-    fi
-
     echo "$service_content" | sudo tee "$SERVICE_PATH" > /dev/null || \
         msg_error "Erstellung der Systemd-Service-Datei fehlgeschlagen."
 
-    # Daemon neu laden
     sudo systemctl daemon-reload || msg_error "Daemon-Reload fehlgeschlagen."
-
-    # Dienst aktivieren
     sudo systemctl enable kleinanzeigen-api.service || msg_error "Service konnte nicht aktiviert werden."
-
-    # Stopp des laufenden Dienstes (falls vorhanden)
-    if sudo systemctl is-active --quiet kleinanzeigen-api.service; then
-        sudo systemctl stop kleinanzeigen-api.service || msg_error "Beenden des Dienstes fehlgeschlagen."
-    fi
-
-    # Starten des Dienstes mit dem neuen Port
-    sudo systemctl start kleinanzeigen-api.service || msg_error "Starten des Dienstes fehlgeschlagen."
+    sudo systemctl restart kleinanzeigen-api.service || msg_error "Service konnte nicht gestartet werden."
 
     msg_ok "Systemdienst erfolgreich erstellt und gestartet."
 }
@@ -250,9 +251,9 @@ function compile_python() {
         msg_error "Konfiguration fehlgeschlagen."
 
     local cores=$(nproc)
-    msg_info "Kompilierung gestartet mit ${cores} Kernen - Bitte haben Sie Geduld.${CL}"
+    msg_info "Kompilierung gestartet mit ${cores} Kernen - Bitte haben Sie Geduld."
     make -j$((cores > 2 ? cores-1 : 1)) >> "$LOG_FILE" 2>&1 || \
-        msg_error "Kompilierung fehlgeschlagen - Details in $LOG_FILE"
+        msg_error "Kompilierung fehlgeschlagen - Details in $LOG_FILE."
 
     sudo make altinstall >> "$LOG_FILE" 2>&1 || \
         msg_error "Installation fehlgeschlagen."
@@ -265,41 +266,31 @@ function compile_python() {
     msg_ok "Python ${version} erfolgreich installiert."
 }
 
-# Prüfen, ob der Port verfügbar ist
-function check_port_available() {
-    local port=$DEFAULT_PORT
-    while netstat -tuln | grep -q ":$port "; do
-        msg_error "Port $port ist bereits belegt."
-        read -p "${YW}Bitte geben Sie einen anderen Port ein: ${CL}" new_port
-        if [[ -z "$new_port" ]]; then
-            msg_error "Port darf nicht leer sein."
-            continue
+# API-Status prüfen
+function check_api_health() {
+    local url="http://$IP:$DEFAULT_PORT/docs"
+    if command -v curl &>/dev/null; then
+        if curl -s -o /dev/null -w "%{http_code}" "$url" | grep -q "200"; then
+            msg_ok "API ist erreichbar unter ${GN}$url${CL}"
+        else
+            msg_error "API ist nicht erreichbar. Bitte überprüfen Sie den Dienst."
         fi
-        if ! [[ "$new_port" =~ ^[0-9]+$ ]]; then
-            msg_error "Ungültige Eingabe. Bitte geben Sie eine numerische Portnummer ein."
-            continue
+    elif command -v wget &>/dev/null; then
+        if wget --spider -q "$url"; then
+            msg_ok "API ist erreichbar unter ${GN}$url${CL}"
+        else
+            msg_error "API ist nicht erreichbar. Bitte überprüfen Sie den Dienst."
         fi
-        port=$new_port
-    done
-    DEFAULT_PORT=$port
-    msg_ok "Port $DEFAULT_PORT ist verfügbar."
-}
-
-
-# Fehler in die Log-Datei schreiben
-function log_error() {
-    echo -e "${RD}Error: $1${CL}" >> "$LOG_FILE"
-    msg_error "$1"
+    else
+        msg_error "Weder curl noch wget sind installiert. Installieren Sie eines davon, um die API-Statusüberprüfung durchzuführen."
+    fi
 }
 
 # --------------------------------------------------------------------------------
 # Hauptausführung
 # --------------------------------------------------------------------------------
 
-# Port-Prüfung
-check_port_available
-
-msg_info "Installationsprotokoll wird geschrieben nach: $LOG_FILE"
+msg_info "Installationsprotokoll wird geschrieben nach: ${GN}$LOG_FILE${CL}"
 
 # Python-Version Eingabe
 while true; do
@@ -314,37 +305,49 @@ if ! confirm_step "Möchten Sie mit der Installation beginnen?"; then
     exit 0
 fi
 
-# Kompiliert Python
-compile_python
-
 # Installationsschritte
 install_prerequisites
 install_dependencies
+
+# Prüfe, ob Python bereits installiert ist
+if command -v "python${PYTHON_VERSION%.*}" &>/dev/null; then
+    msg_ok "Python ${PYTHON_VERSION} ist bereits installiert."
+else
+    compile_python
+fi
+
 setup_project
+
+# Port-Prüfung
+check_port_available
 
 # Systemdienst erstellen
 create_systemd_service
 
+# API-Status prüfen
+msg_info "Überprüfe API-Status..."
+check_api_health
+
 # Nach der Installation
 msg_ok "ebay-kleinanzeigen API wurde erfolgreich installiert!"
-echo -e "\033[1;34m═══════════════════════════════════════════════════════════════════════════════"
+echo -e "\033[1;34m══════════════════════════════════════════════════════════════════════════════"
 echo -e "${GN}API-Zugriffspunkte:${CL}"
 echo -e "  ${YW}• Dokumentation (Swagger):${CL} ${CY}http://$IP:$DEFAULT_PORT/docs${CL}"
 echo -e "  ${YW}• Interaktive Dokumentation (Redoc):${CL} ${CY}http://$IP:$DEFAULT_PORT/redoc${CL}"
 
-echo -e "\033[1;34m═══════════════════════════════════════════════════════════════════════════════"
+echo -e "\033[1;34m══════════════════════════════════════════════════════════════════════════════"
 echo -e "${GN}Serviceverwaltung:${CL}"
 echo -e "  ${YW}• Starten:${CL} ${CY}sudo systemctl start kleinanzeigen-api.service${CL}"
 echo -e "  ${YW}• Stoppen:${CL} ${CY}sudo systemctl stop kleinanzeigen-api.service${CL}"
 echo -e "  ${YW}• Neustarten:${CL} ${CY}sudo systemctl restart kleinanzeigen-api.service${CL}"
 echo -e "  ${YW}• Status prüfen:${CL} ${CY}sudo systemctl status kleinanzeigen-api.service${CL}"
 
-echo -e "\033[1;34m═══════════════════════════════════════════════════════════════════════════════"
+echo -e "\033[1;34m══════════════════════════════════════════════════════════════════════════════"
 echo -e "${GN}Protokolle und Logs:${CL}"
 echo -e "  ${YW}• Installationsprotokoll:${CL} ${CY}$LOG_FILE${CL}"
 echo -e "  ${YW}• Dienstprotokoll:${CL} ${CY}journalctl -u kleinanzeigen-api.service${CL}"
 
-echo -e "\033[1;34m═══════════════════════════════════════════════════════════════════════════════"
+echo -e "\033[1;34m══════════════════════════════════════════════════════════════════════════════"
 echo -e "${GN}Hinweise:${CL}"
 echo -e "  ${YW}• Der API-Dienst läuft auf Port ${CY}$DEFAULT_PORT${CL}."
 echo -e "  ${YW}• Wenn Sie Probleme haben, überprüfen Sie die Log-Dateien.${CL}"
@@ -365,3 +368,6 @@ if confirm_step "Möchten Sie altes Paket-Cache löschen?"; then
     sudo apt clean -yq >> "$LOG_FILE" 2>&1
     msg_ok "Paket-Cache erfolgreich bereinigt."
 fi
+
+# Stelle sicher, dass die Terminalfarben zurückgesetzt werden
+echo -e "${CL}"
