@@ -301,11 +301,11 @@ install_prerequisites
 install_dependencies
 
 # Prüfe, ob Python bereits installiert ist
-#if command -v "python${PYTHON_VERSION%.*}" &>/dev/null; then
-#    msg_ok "Python ${PYTHON_VERSION} ist bereits installiert."
-#else
-#    compile_python
-#fi
+if command -v "python${PYTHON_VERSION%.*}" &>/dev/null; then
+    msg_ok "Python ${PYTHON_VERSION} ist bereits installiert."
+else
+    compile_python
+fi
 
 # Kleinanzeigen-API einrichten
 setup_project
