@@ -243,7 +243,6 @@ function compile_python() {
         --enable-optimizations \
         --with-lto \
         --with-system-expat \
-        --with-system-ffi \
         --enable-loadable-sqlite-extensions \
         CFLAGS="-fPIC -Wno-error=deprecated-declarations" >> "$LOG_FILE" 2>&1 || \
         msg_error "Konfiguration fehlgeschlagen."
