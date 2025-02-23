@@ -215,4 +215,4 @@ if confirm_step "Möchten Sie temporäre Build-Dateien löschen"; then
     msg_ok "Bereinigung abgeschlossen"
 fi
 
-msg_info "Installation abgeschlossen am $(date)"
+msg_info "Installation abgeschlossen am $(date)${CL}"
