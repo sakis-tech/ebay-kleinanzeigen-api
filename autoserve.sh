@@ -159,7 +159,7 @@ WantedBy=multi-user.target"
 # Funktion zur Installation von Voraussetzungen
 function install_prerequisites() {
     msg_info "Installiere erforderliche Tools"
-    local tools=("net-tools" "curl" "build-essential")
+    local tools=("net-tools" "curl" "build-essential" "git")
     for tool in "${tools[@]}"; do
         if ! command -v $(echo "$tool" | cut -d '-' -f1) &>/dev/null; then
             msg_info "Installiere $tool..."
@@ -214,7 +214,7 @@ function install_dependencies() {
     msg_info "Installiere Systemabhängigkeiten."
 
     local deps=(
-        build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev
+        zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev
         libssl-dev libreadline-dev libffi-dev libbz2-dev libsqlite3-dev
         liblzma-dev tk-dev libdb5.3-dev uuid-dev libgpm2 libxml2-dev
         libxmlsec1-dev mlocate libreadline-dev libffi-dev liblzma-dev lzma
@@ -307,7 +307,7 @@ read -n 1 -s -r -p "${YW}Drücken Sie eine beliebige Taste, um fortzufahren...${
 echo -e "\n"
 
 # Bestätigung zur Installation von Voraussetzungen
-if confirm_step "Möchten Sie erforderliche Tools (wie net-tools, curl) installieren?"; then
+if confirm_step "Möchten Sie erforderliche Tools (net-tools, curl, build-essential, git) installieren?"; then
     install_prerequisites
 else
     msg_error "Die Installation wurde abgebrochen, da erforderliche Tools nicht installiert wurden."
