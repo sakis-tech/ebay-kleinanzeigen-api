@@ -151,12 +151,22 @@ Restart=always
 [Install]
 WantedBy=multi-user.target"
 
+    # Erstelle die Systemd-Service-Datei
+    msg_info "Erstelle Systemd-Service-Datei..."
     echo "$service_content" | sudo tee "$SERVICE_PATH" > /dev/null || \
         msg_error "Erstellung der Systemd-Service-Datei fehlgeschlagen."
 
-    sudo systemctl daemon-reload || msg_error "Daemon-Reload fehlgeschlagen."
-    sudo systemctl enable kleinanzeigen-api.service || msg_error "Service konnte nicht aktiviert werden."
-    sudo systemctl restart kleinanzeigen-api.service || msg_error "Service konnte nicht gestartet werden."
+    # Aktualisiere systemd und aktiviere den Dienst
+    msg_info "Aktualisiere systemd und aktiviere den Dienst..."
+    if ! sudo systemctl daemon-reload > /dev/null 2>&1; then
+        msg_error "Daemon-Reload fehlgeschlagen."
+    fi
+    if ! sudo systemctl enable kleinanzeigen-api.service > /dev/null 2>&1; then
+        msg_error "Service konnte nicht aktiviert werden."
+    fi
+    if ! sudo systemctl start kleinanzeigen-api.service > /dev/null 2>&1; then
+        msg_error "Service konnte nicht gestartet werden."
+    fi
 
     msg_ok "Systemdienst erfolgreich erstellt und gestartet."
 }
