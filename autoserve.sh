@@ -70,7 +70,7 @@ function confirm_step() {
     echo -e "${YW}💡 ${1}${CL}"
     echo -e "${YW}═══════════════════════════════════════════════════════════════════════════════"
     read -p "${YW}Antwort (y/N): ${CL}" -n 1 -r
-    echo  
+    echo -e "\n"  
     [[ $REPLY =~ ^[Yy]$ ]]
 }
 
