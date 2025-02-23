@@ -89,35 +89,6 @@ function validate_version() {
     return 0
 }
 
-# Playwright auswahl
-function select_playwright_browsers() {
-    echo -e "\n${YW}Verfügbare Browser für Playwright:${CL}"
-    local options=("chromium" "firefox" "webkit" "alle")
-    local selected=()
-    
-    PS3="${YW}Wählen Sie Browser (Mehrfachauswahl mit Komma getrennt): ${CL}"
-    select opt in "${options[@]}"; do
-        case $opt in
-            "chromium") selected+=("chromium");;
-            "firefox") selected+=("firefox");;
-            "webkit") selected+=("webkit");;
-            "alle") selected=("chromium" "firefox" "webkit"); break;;
-            *) msg_error "Ungültige Option";;
-        esac
-        [[ $REPLY == 4 ]] && break
-    done
-    
-    if [ ${#selected[@]} -eq 0 ]; then
-        msg_info "Standardmäßig wird Chromium installiert"
-        selected=("chromium")
-    fi
-    
-    echo -n "${GN}Ausgewählte Browser: "
-    printf "%s " "${selected[@]}"
-    echo -e "${CL}"
-    PLAYWRIGHT_BROWSERS=("${selected[@]}")
-}
-
 function setup_project() {
     msg_info "Richte Projekt ein"
     
@@ -141,44 +112,28 @@ function setup_project() {
     # Pakete installieren
     pip install -q -r requirements.txt || msg_error "Paketinstallation fehlgeschlagen"
 
-    # Browserauswahl
-    select_playwright_browsers
-    python -m playwright install "${PLAYWRIGHT_BROWSERS[@]}" >> "$LOG_FILE" 2>&1 || \
+    # Installiere nur Chromium
+    msg_info "Installiere Chromium"
+    python -m playwright install chromium >> "$LOG_FILE" 2>&1 || \
         msg_error "Playwright-Installation fehlgeschlagen"
 }
 
-function validate_version() {
-    local version=$1
-    if [[ ! $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        msg_error "Ungültiges Format. Bitte im Format X.Y.Z eingeben (z.B. 3.12.3)"
-        return 1
-    fi
+function install_dependencies() {
+    msg_info "Installiere Systemabhängigkeiten"
     
-    IFS='.' read -r -a parts <<< "$version"
-    if [[ ${parts[0]} -ne 3 ]] || [[ ${parts[1]} -lt 12 ]]; then
-        msg_error "Mindestanforderung: Python 3.12.0 oder höher!"
-        return 1
-    fi
-    
-    return 0
-}
+    local deps=(
+        build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev
+        libssl-dev libreadline-dev libffi-dev libbz2-dev libsqlite3-dev
+        liblzma-dev tk-dev libdb5.3-dev uuid-dev libgpm2 libxml2-dev 
+        libxmlsec1-dev mlocate libreadline-dev libffi-dev liblzma-dev lzma
+        python3-packaging python3-venv
+    )
 
-function setup_swap() {
-    local mem_total=$(free -m | awk '/Mem:/ {print $2}')
-    if [ -z "$mem_total" ]; then
-        msg_info "Speichererkennung fehlgeschlagen, überspringe Swap-Erstellung"
-        return
+    if ! sudo apt update >> "$LOG_FILE" 2>&1 || \
+       ! sudo apt install -y "${deps[@]}" >> "$LOG_FILE" 2>&1; then
+        msg_error "Paketinstallation fehlgeschlagen - siehe $LOG_FILE"
     fi
-    
-    if [ "$mem_total" -lt 2048 ]; then
-        msg_info "Erstelle 2GB Swap-Space für stabilen Build"
-        sudo fallocate -l 2G /swapfile >> "$LOG_FILE" 2>&1
-        sudo chmod 600 /swapfile
-        sudo mkswap /swapfile >> "$LOG_FILE" 2>&1
-        sudo swapon /swapfile
-        echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >> "$LOG_FILE" 2>&1
-        msg_ok "Swap-Space erfolgreich eingerichtet"
-    fi
+    msg_ok "Systemabhängigkeiten installiert"
 }
 
 function compile_python() {
@@ -220,26 +175,8 @@ function compile_python() {
     msg_ok "Python ${version} erfolgreich installiert"
 }
 
-function install_dependencies() {
-    msg_info "Installiere Systemabhängigkeiten"
-    
-    local deps=(
-        build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev
-        libssl-dev libreadline-dev libffi-dev libbz2-dev libsqlite3-dev
-        liblzma-dev tk-dev libdb5.3-dev uuid-dev libgpm2 libxml2-dev 
-        libxmlsec1-dev mlocate libreadline-dev libffi-dev liblzma-dev lzma
-        python3-packaging python3-venv
-    )
-
-    if ! sudo apt update >> "$LOG_FILE" 2>&1 || \
-       ! sudo apt install -y "${deps[@]}" >> "$LOG_FILE" 2>&1; then
-        msg_error "Paketinstallation fehlgeschlagen - siehe $LOG_FILE"
-    fi
-    msg_ok "Systemabhängigkeiten installiert"
-}
-
 # Hauptausführung
-	msg_info "Installationsprotokoll wird geschrieben nach: $LOG_FILE"
+msg_info "Installationsprotokoll wird geschrieben nach: $LOG_FILE"
 
 # Python-Version Eingabe
 while true; do
@@ -255,19 +192,16 @@ if ! confirm_step "Möchten Sie mit der Installation beginnen"; then
 fi
 
 # Installationsschritte
-setup_swap
 install_dependencies
 compile_python
 setup_project
-create_service
 
-echo -e "\n${GN}╔════════════════════════════════════════════╗"
-echo -e "║            ${BL}INSTALLATION ERFOLGREICH${GN}           ║"
-echo -e "╠════════════════════════════════════════════╣"
-echo -e "║ ${YW}API Dokumentation: ${BL}http://$IP:$port/docs${CL}     ║"
-echo -e "║ ${YW}Swagger UI:        ${BL}http://$IP:$port/redoc${CL}     ║"
-echo -e "╚════════════════════════════════════════════╝${CL}"
-
+# Nach der Installation
+echo -e "\n"
+msg_ok "INSTALLATION ERFOLGREICH"
+echo -e "\n"
+msg_info "API Dokumentation: http://$IP:$DEFAULT_PORT/docs"
+msg_info "Swagger UI:http://$IP:$DEFAULT_PORT/redoc"
 
 # Bereinigung
 if confirm_step "Möchten Sie temporäre Build-Dateien löschen"; then
@@ -276,4 +210,4 @@ if confirm_step "Möchten Sie temporäre Build-Dateien löschen"; then
     msg_ok "Bereinigung abgeschlossen"
 fi
 
-echo -e "\n${GN}Installation abgeschlossen um $(date)${CL}"
+msg_info "Installation abgeschlossen am $(date)"
