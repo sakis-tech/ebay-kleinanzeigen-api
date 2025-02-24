@@ -63,7 +63,7 @@ function msg_ok() {
 # Fehlermeldung
 function msg_error() {
     echo -e "${RD}═══════════════════════════════════════════════════════════════════════════════"
-    echo -e "${RD}❎ ${1}${CL}"
+    echo -e "${RD} Cena ${1}${CL}"
     echo -e "${RD}═══════════════════════════════════════════════════════════════════════════════"
     echo -e "${CL}"  # Terminalfarbe zurücksetzen
     exit 1
@@ -113,7 +113,7 @@ function check_port_available() {
         port=$new_port
     done
     msg_ok "Port ${GN}$port${CL} ist verfügbar."
-    echo "$port"  # Gibt den gültigen Port zurück
+    echo "$port"
 }
 
 # Python-Version validieren
@@ -123,77 +123,43 @@ function validate_version() {
         msg_error "Ungültiges Format. Bitte im Format X.Y.Z eingeben (z.B. 3.12.3)."
         return 1
     fi
-
     IFS='.' read -r -a parts <<< "$version"
     if (( ${parts[0]} < 3 )) || (( ${parts[1]} < 12 )); then
         msg_error "Mindestanforderung: Python 3.12.0 oder höher!"
         return 1
     fi
-
     return 0
 }
-
-# Überprüfe PATH-Variablen
-if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
-    export PATH="/usr/local/bin:$PATH"
-fi
 
 # Python kompilieren
 function compile_python() {
     local version=$PYTHON_VERSION
     msg_info "Kompiliere Python ${version} - Dies kann mehrere Minuten dauern."
-
     sudo mkdir -p "$BUILD_DIR" || msg_error "Erstellung von $BUILD_DIR fehlgeschlagen."
     sudo chmod 777 "$BUILD_DIR" || msg_error "Berechtigungen für $BUILD_DIR konnten nicht gesetzt werden."
     cd "$BUILD_DIR" || msg_error "Wechsel zu $BUILD_DIR fehlgeschlagen."
-
     if ! wget -q "https://www.python.org/ftp/python/${version}/Python-${version}.tgz"; then
         msg_error "Download der Python-Version ${version} fehlgeschlagen."
     fi
-
     tar xzf "Python-${version}.tgz" || msg_error "Entpacken fehlgeschlagen."
     cd "Python-${version}" || msg_error "Wechsel zu Python-${version}-Verzeichnis fehlgeschlagen."
-
     ./configure \
         --enable-optimizations \
         --with-lto \
         --enable-loadable-sqlite-extensions \
         CFLAGS="-fPIC -Wno-error=deprecated-declarations" >> "$LOG_FILE" 2>&1 || \
         msg_error "Konfiguration fehlgeschlagen."
-
     local cores=$(nproc)
     msg_info "Kompilierung gestartet mit ${cores} Kernen - Bitte haben Sie Geduld."
     make -j$((cores > 2 ? cores-1 : 1)) >> "$LOG_FILE" 2>&1 || \
         msg_error "Kompilierung fehlgeschlagen - Details in $LOG_FILE."
-
     sudo make altinstall >> "$LOG_FILE" 2>&1 || \
         msg_error "Installation fehlgeschlagen."
-
     sudo update-alternatives --install /usr/local/bin/python3 python3 "/usr/local/bin/python${version%.*}" 10 || \
         msg_error "Update-Alternatives-Konfiguration fehlgeschlagen."
     sudo update-alternatives --set python3 "/usr/local/bin/python${version%.*}" || \
         msg_error "Setzen der Python-Version fehlgeschlagen."
-
     msg_ok "Python ${version} erfolgreich installiert."
-}
-
-# Systemabhängigkeiten installieren
-function install_dependencies() {
-    msg_info "Installiere Systemabhängigkeiten."
-
-    local deps=(
-        zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev
-        libssl-dev libreadline-dev libffi-dev libbz2-dev libsqlite3-dev
-        liblzma-dev tk-dev libdb5.3-dev uuid-dev libgpm2 libxml2-dev
-        libxmlsec1-dev mlocate libreadline-dev libffi-dev liblzma-dev lzma
-        python3-packaging python3-venv
-    )
-
-    if ! { sudo apt update >> "$LOG_FILE" 2>&1 && sudo apt install -y "${deps[@]}" >> "$LOG_FILE" 2>&1; }; then
-        msg_error "Paketinstallation fehlgeschlagen - siehe $LOG_FILE"
-    fi
-
-    msg_ok "Systemabhängigkeiten installiert."
 }
 
 # Funktion zur Aktualisierung von pip
@@ -207,29 +173,33 @@ function upgrade_pip() {
 # Projekt einrichten
 function setup_project() {
     msg_info "Richte Projekt ein"
-
     sudo mkdir -p "$INSTALL_DIR" || msg_error "Erstellung von $INSTALL_DIR fehlgeschlagen."
     sudo chown -R $USER:$USER "$INSTALL_DIR" || msg_error "Berechtigungen für $INSTALL_DIR konnten nicht gesetzt werden."
-
     git clone -q https://github.com/sakis-tech/ebay-kleinanzeigen-api.git "$INSTALL_DIR" || \
         msg_error "Klonen des Repositoriums fehlgeschlagen."
-
     cd "$INSTALL_DIR" || msg_error "Wechsel zu $INSTALL_DIR fehlgeschlagen."
-
-    # Virtuelle Umgebung
     python3 -m venv .venv || msg_error "Erstellung der virtuellen Umgebung fehlgeschlagen."
     source .venv/bin/activate || msg_error "Aktivierung der virtuellen Umgebung fehlgeschlagen."
-
-    # Pip aktualisieren
     upgrade_pip
-
-    # Pakete installieren
     pip install -q -r requirements.txt || msg_error "Installation der Python-Pakete fehlgeschlagen."
-
-    # Installiere nur Chromium
     msg_info "Installiere Chromium"
     python -m playwright install chromium >> "$LOG_FILE" 2>&1 || \
         msg_error "Playwright-Chromium-Installation fehlgeschlagen."
+}
+
+# Systemabhängigkeiten installieren
+function install_dependencies() {
+    msg_info "Installiere Systemabhängigkeiten."
+    local deps=(
+        zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev
+        libssl-dev libreadline-dev libffi-dev libbz2-dev libsqlite3-dev
+        liblzma-dev tk-dev uuid-dev libgpm2 libxml2-dev libxmlsec1-dev mlocate
+        python3-packaging python3-venv
+    )
+    if ! { sudo apt update >> "$LOG_FILE" 2>&1 && sudo apt install -y "${deps[@]}" >> "$LOG_FILE" 2>&1; }; then
+        msg_error "Paketinstallation fehlgeschlagen - siehe $LOG_FILE"
+    fi
+    msg_ok "Systemabhängigkeiten installiert."
 }
 
 # Systemdienst erstellen
@@ -247,23 +217,15 @@ Restart=always
 [Install]
 WantedBy=multi-user.target"
 
-    # Erstelle die Systemd-Service-Datei
     msg_info "Erstelle Systemd-Service-Datei..."
     echo "$service_content" | sudo tee "$SERVICE_PATH" > /dev/null || \
         msg_error "Erstellung der Systemd-Service-Datei fehlgeschlagen."
-
-    # Aktualisiere systemd und aktiviere den Dienst
-    msg_info "Aktualisiere systemd und aktiviere den Dienst..."
-    if ! sudo systemctl daemon-reload > /dev/null 2>&1; then
+    sudo systemctl daemon-reload > /dev/null 2>&1 || \
         msg_error "Daemon-Reload fehlgeschlagen."
-    fi
-    if ! sudo systemctl enable kleinanzeigen-api.service > /dev/null 2>&1; then
+    sudo systemctl enable kleinanzeigen-api.service > /dev/null 2>&1 || \
         msg_error "Service konnte nicht aktiviert werden."
-    fi
-    if ! sudo systemctl start kleinanzeigen-api.service > /dev/null 2>&1; then
+    sudo systemctl start kleinanzeigen-api.service > /dev/null 2>&1 || \
         msg_error "Service konnte nicht gestartet werden."
-    fi
-
     msg_ok "Systemdienst erfolgreich erstellt und gestartet."
 }
 
@@ -291,17 +253,12 @@ function check_api_health() {
 # Hauptausführung
 # --------------------------------------------------------------------------------
 
+header_info
+
 # Willkommensnachricht und Bestätigung
 msg_info "Willkommen bei der Einrichtung der Kleinanzeigen-API"
-
 echo -e "${GN}Dieses Skript führt Sie durch die Installation der Kleinanzeigen-API.${CL}"
-echo -e "${GN}Es werden automatisch folgende Schritte ausgeführt:${CL}"
-echo -e "  ${YW}• Überprüfung und Installierung der benötigten Systemabhängigkeit en${CL}"
-echo -e "  ${YW}• Kompilierung und Installation einer spezifischen Python-Version (mind. 3.12.0)${CL}"
-echo -e "  ${YW}• Einrichtung von Kleinanzeigen-API mit virtueller Umgebung und erforderlichen Paketen${CL}"
-echo -e "  ${YW}• Konfiguration eines Systemdienstes zur besseren Verwaltung${CL}"
-echo -e "  ${YW}• Optional: Bereinigung temporärer Dateien und Cache-Optimierung${CL}"
-
+echo -e "${GN}Es werden automatisch alle erforderlichen Pakete installiert.${CL}"
 read -n 1 -s -r -p "${YW}Drücken Sie eine beliebige Taste, um fortzufahren...${CL}"
 echo -e "\n"
 
@@ -315,8 +272,6 @@ fi
 # Port-Auswahl und -Prüfung
 read -p "${YW}Wählen Sie einen Port für die API (Standard: $DEFAULT_PORT): ${CL}" chosen_port
 chosen_port=${chosen_port:-$DEFAULT_PORT}
-
-# Überprüfe, ob der gewählte Port verfügbar ist
 DEFAULT_PORT=$(check_port_available "$chosen_port")
 
 # Installationsprotokoll
@@ -346,8 +301,6 @@ fi
 # Installationsschritte
 install_dependencies
 setup_project
-
-# Systemdienst erstellen
 create_systemd_service
 
 # API-Status prüfen
@@ -395,5 +348,5 @@ if confirm_step "Möchten Sie altes Paket-Cache löschen?"; then
     msg_ok "Paket-Cache erfolgreich bereinigt."
 fi
 
-# Stelle sicher, dass die Terminalfarben zurückgesetzt werden
+# Reset Terminalfarben
 echo -e "${CL}"
