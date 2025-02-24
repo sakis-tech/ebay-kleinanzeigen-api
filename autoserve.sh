@@ -79,83 +79,6 @@ function confirm_step() {
     [[ $REPLY =~ ^[Yy]$ ]]
 }
 
-# Python-Version validieren
-function validate_version() {
-    local version=$1
-    if [[ ! $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        msg_error "Ungültiges Format. Bitte im Format X.Y.Z eingeben (z.B. 3.12.3)."
-        return 1
-    fi
-
-    IFS='.' read -r -a parts <<< "$version"
-    if (( ${parts[0]} < 3 )) || (( ${parts[1]} < 12 )); then
-        msg_error "Mindestanforderung: Python 3.12.0 oder höher!"
-        return 1
-    fi
-
-    return 0
-}
-
-# Prüfen, ob der Port verfügbar ist
-function check_port_available() {
-    local port=$DEFAULT_PORT
-    while netstat -tuln | grep -q ":$port "; do
-        msg_error "Port ${YW}$port${RD} ist bereits belegt."
-        read -p "${YW}Bitte geben Sie einen anderen Port ein: ${CL}" new_port
-        if [[ -z "$new_port" ]]; then
-            msg_error "Port darf nicht leer sein."
-            continue
-        fi
-        if ! [[ "$new_port" =~ ^[0-9]+$ ]]; then
-            msg_error "Ungültige Eingabe. Bitte geben Sie eine numerische Portnummer ein."
-            continue
-        fi
-        port=$new_port
-    done
-    DEFAULT_PORT=$port
-    msg_ok "Port ${GN}$DEFAULT_PORT${CL} ist verfügbar."
-}
-
-# Überprüfe PATH-Variablen
-if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
-    export PATH="/usr/local/bin:$PATH"
-fi
-
-# Systemdienst erstellen
-function create_systemd_service() {
-    local service_content="[Unit]
-Description=Kleinanzeigen API Service
-After=network.target
-
-[Service]
-User=$USER
-WorkingDirectory=$INSTALL_DIR
-ExecStart=$INSTALL_DIR/.venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port $DEFAULT_PORT
-Restart=always
-
-[Install]
-WantedBy=multi-user.target"
-
-    # Erstelle die Systemd-Service-Datei
-    msg_info "Erstelle Systemd-Service-Datei..."
-    echo "$service_content" | sudo tee "$SERVICE_PATH" > /dev/null || \
-        msg_error "Erstellung der Systemd-Service-Datei fehlgeschlagen."
-
-    # Aktualisiere systemd und aktiviere den Dienst
-    msg_info "Aktualisiere systemd und aktiviere den Dienst..."
-    if ! sudo systemctl daemon-reload > /dev/null 2>&1; then
-        msg_error "Daemon-Reload fehlgeschlagen."
-    fi
-    if ! sudo systemctl enable kleinanzeigen-api.service > /dev/null 2>&1; then
-        msg_error "Service konnte nicht aktiviert werden."
-    fi
-    if ! sudo systemctl start kleinanzeigen-api.service > /dev/null 2>&1; then
-        msg_error "Service konnte nicht gestartet werden."
-    fi
-
-    msg_ok "Systemdienst erfolgreich erstellt und gestartet."
-}
-
 # Funktion zur Installation von Voraussetzungen
 function install_prerequisites() {
     msg_info "Installiere erforderliche Tools"
@@ -173,60 +96,47 @@ function install_prerequisites() {
     done
 }
 
-# Funktion zur Aktualisierung von pip
-function upgrade_pip() {
-    msg_info "Aktualisiere pip auf die neueste Version..."
-    python3 -m pip install --upgrade pip >> "$LOG_FILE" 2>&1 || \
-        msg_error "Pip-Aktualisierung fehlgeschlagen."
-    msg_ok "Pip wurde erfolgreich aktualisiert."
+# Prüfen, ob der Port verfügbar ist
+function check_port_available() {
+    local port=$1
+    while netstat -tuln | grep -q ":$port "; do
+        msg_error "Port ${YW}$port${RD} ist bereits belegt."
+        read -p "${YW}Bitte geben Sie einen anderen Port ein: ${CL}" new_port
+        if [[ -z "$new_port" ]]; then
+            msg_error "Port darf nicht leer sein."
+            continue
+        fi
+        if ! [[ "$new_port" =~ ^[0-9]+$ ]]; then
+            msg_error "Ungültige Eingabe. Bitte geben Sie eine numerische Portnummer ein."
+            continue
+        fi
+        port=$new_port
+    done
+    msg_ok "Port ${GN}$port${CL} ist verfügbar."
+    echo "$port"  # Gibt den gültigen Port zurück
 }
 
-# Projekt einrichten
-function setup_project() {
-    msg_info "Richte Projekt ein"
-
-    sudo mkdir -p "$INSTALL_DIR" || msg_error "Erstellung von $INSTALL_DIR fehlgeschlagen."
-    sudo chown -R $USER:$USER "$INSTALL_DIR" || msg_error "Berechtigungen für $INSTALL_DIR konnten nicht gesetzt werden."
-
-    git clone -q https://github.com/sakis-tech/ebay-kleinanzeigen-api.git "$INSTALL_DIR" || \
-        msg_error "Klonen des Repositoriums fehlgeschlagen."
-
-    cd "$INSTALL_DIR" || msg_error "Wechsel zu $INSTALL_DIR fehlgeschlagen."
-
-    # Virtuelle Umgebung
-    python3 -m venv .venv || msg_error "Erstellung der virtuellen Umgebung fehlgeschlagen."
-    source .venv/bin/activate || msg_error "Aktivierung der virtuellen Umgebung fehlgeschlagen."
-
-    # Pip aktualisieren
-    upgrade_pip
-
-    # Pakete installieren
-    pip install -q -r requirements.txt || msg_error "Installation der Python-Pakete fehlgeschlagen."
-
-    # Installiere nur Chromium
-    msg_info "Installiere Chromium"
-    python -m playwright install chromium >> "$LOG_FILE" 2>&1 || \
-        msg_error "Playwright-Chromium-Installation fehlgeschlagen."
-}
-
-# Systemabhängigkeiten installieren
-function install_dependencies() {
-    msg_info "Installiere Systemabhängigkeiten."
-
-    local deps=(
-        zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev
-        libssl-dev libreadline-dev libffi-dev libbz2-dev libsqlite3-dev
-        liblzma-dev tk-dev libdb5.3-dev uuid-dev libgpm2 libxml2-dev
-        libxmlsec1-dev mlocate libreadline-dev libffi-dev liblzma-dev lzma
-        python3-packaging python3-venv
-    )
-
-    if ! { sudo apt update >> "$LOG_FILE" 2>&1 && sudo apt install -y "${deps[@]}" >> "$LOG_FILE" 2>&1; }; then
-        msg_error "Paketinstallation fehlgeschlagen - siehe $LOG_FILE"
+# Python-Version validieren
+function validate_version() {
+    local version=$1
+    if [[ ! $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        msg_error "Ungültiges Format. Bitte im Format X.Y.Z eingeben (z.B. 3.12.3)."
+        return 1
     fi
 
-    msg_ok "Systemabhängigkeiten installiert."
+    IFS='.' read -r -a parts <<< "$version"
+    if (( ${parts[0]} < 3 )) || (( ${parts[1]} < 12 )); then
+        msg_error "Mindestanforderung: Python 3.12.0 oder höher!"
+        return 1
+    fi
+
+    return 0
 }
+
+# Überprüfe PATH-Variablen
+if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
+    export PATH="/usr/local/bin:$PATH"
+fi
 
 # Python kompilieren
 function compile_python() {
@@ -267,6 +177,96 @@ function compile_python() {
     msg_ok "Python ${version} erfolgreich installiert."
 }
 
+# Systemabhängigkeiten installieren
+function install_dependencies() {
+    msg_info "Installiere Systemabhängigkeiten."
+
+    local deps=(
+        zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev
+        libssl-dev libreadline-dev libffi-dev libbz2-dev libsqlite3-dev
+        liblzma-dev tk-dev libdb5.3-dev uuid-dev libgpm2 libxml2-dev
+        libxmlsec1-dev mlocate libreadline-dev libffi-dev liblzma-dev lzma
+        python3-packaging python3-venv
+    )
+
+    if ! { sudo apt update >> "$LOG_FILE" 2>&1 && sudo apt install -y "${deps[@]}" >> "$LOG_FILE" 2>&1; }; then
+        msg_error "Paketinstallation fehlgeschlagen - siehe $LOG_FILE"
+    fi
+
+    msg_ok "Systemabhängigkeiten installiert."
+}
+
+# Funktion zur Aktualisierung von pip
+function upgrade_pip() {
+    msg_info "Aktualisiere pip auf die neueste Version..."
+    python3 -m pip install --upgrade pip >> "$LOG_FILE" 2>&1 || \
+        msg_error "Pip-Aktualisierung fehlgeschlagen."
+    msg_ok "Pip wurde erfolgreich aktualisiert."
+}
+
+# Projekt einrichten
+function setup_project() {
+    msg_info "Richte Projekt ein"
+
+    sudo mkdir -p "$INSTALL_DIR" || msg_error "Erstellung von $INSTALL_DIR fehlgeschlagen."
+    sudo chown -R $USER:$USER "$INSTALL_DIR" || msg_error "Berechtigungen für $INSTALL_DIR konnten nicht gesetzt werden."
+
+    git clone -q https://github.com/sakis-tech/ebay-kleinanzeigen-api.git "$INSTALL_DIR" || \
+        msg_error "Klonen des Repositoriums fehlgeschlagen."
+
+    cd "$INSTALL_DIR" || msg_error "Wechsel zu $INSTALL_DIR fehlgeschlagen."
+
+    # Virtuelle Umgebung
+    python3 -m venv .venv || msg_error "Erstellung der virtuellen Umgebung fehlgeschlagen."
+    source .venv/bin/activate || msg_error "Aktivierung der virtuellen Umgebung fehlgeschlagen."
+
+    # Pip aktualisieren
+    upgrade_pip
+
+    # Pakete installieren
+    pip install -q -r requirements.txt || msg_error "Installation der Python-Pakete fehlgeschlagen."
+
+    # Installiere nur Chromium
+    msg_info "Installiere Chromium"
+    python -m playwright install chromium >> "$LOG_FILE" 2>&1 || \
+        msg_error "Playwright-Chromium-Installation fehlgeschlagen."
+}
+
+# Systemdienst erstellen
+function create_systemd_service() {
+    local service_content="[Unit]
+Description=Kleinanzeigen API Service
+After=network.target
+
+[Service]
+User=$USER
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/.venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port $DEFAULT_PORT
+Restart=always
+
+[Install]
+WantedBy=multi-user.target"
+
+    # Erstelle die Systemd-Service-Datei
+    msg_info "Erstelle Systemd-Service-Datei..."
+    echo "$service_content" | sudo tee "$SERVICE_PATH" > /dev/null || \
+        msg_error "Erstellung der Systemd-Service-Datei fehlgeschlagen."
+
+    # Aktualisiere systemd und aktiviere den Dienst
+    msg_info "Aktualisiere systemd und aktiviere den Dienst..."
+    if ! sudo systemctl daemon-reload > /dev/null 2>&1; then
+        msg_error "Daemon-Reload fehlgeschlagen."
+    fi
+    if ! sudo systemctl enable kleinanzeigen-api.service > /dev/null 2>&1; then
+        msg_error "Service konnte nicht aktiviert werden."
+    fi
+    if ! sudo systemctl start kleinanzeigen-api.service > /dev/null 2>&1; then
+        msg_error "Service konnte nicht gestartet werden."
+    fi
+
+    msg_ok "Systemdienst erfolgreich erstellt und gestartet."
+}
+
 # API-Status prüfen
 function check_api_health() {
     local url="http://$IP:$DEFAULT_PORT/docs"
@@ -296,7 +296,7 @@ msg_info "Willkommen bei der Einrichtung der Kleinanzeigen-API"
 
 echo -e "${GN}Dieses Skript führt Sie durch die Installation der Kleinanzeigen-API.${CL}"
 echo -e "${GN}Es werden automatisch folgende Schritte ausgeführt:${CL}"
-echo -e "  ${YW}• Überprüfung und Installierung der benötigten Systemabhängigkeiten${CL}"
+echo -e "  ${YW}• Überprüfung und Installierung der benötigten Systemabhängigkeit en${CL}"
 echo -e "  ${YW}• Kompilierung und Installation einer spezifischen Python-Version (mind. 3.12.0)${CL}"
 echo -e "  ${YW}• Einrichtung von Kleinanzeigen-API mit virtueller Umgebung und erforderlichen Paketen${CL}"
 echo -e "  ${YW}• Konfiguration eines Systemdienstes zur besseren Verwaltung${CL}"
@@ -305,7 +305,7 @@ echo -e "  ${YW}• Optional: Bereinigung temporärer Dateien und Cache-Optimier
 read -n 1 -s -r -p "${YW}Drücken Sie eine beliebige Taste, um fortzufahren...${CL}"
 echo -e "\n"
 
-# Bestätigung zur Installation von Voraussetzungen
+# Installation von Voraussetzungen
 if confirm_step "Möchten Sie erforderliche Tools (net-tools, curl, build-essential, git) installieren?"; then
     install_prerequisites
 else
@@ -316,26 +316,7 @@ fi
 read -p "${YW}Wählen Sie einen Port für die API (Standard: $DEFAULT_PORT): ${CL}" chosen_port
 chosen_port=${chosen_port:-$DEFAULT_PORT}
 
-# Prüfen, ob der Port verfügbar ist
-function check_port_available() {
-    local port=$1
-    while netstat -tuln | grep -q ":$port "; do
-        msg_error "Port ${YW}$port${RD} ist bereits belegt."
-        read -p "${YW}Bitte geben Sie einen anderen Port ein: ${CL}" new_port
-        if [[ -z "$new_port" ]]; then
-            msg_error "Port darf nicht leer sein."
-            continue
-        fi
-        if ! [[ "$new_port" =~ ^[0-9]+$ ]]; then
-            msg_error "Ungültige Eingabe. Bitte geben Sie eine numerische Portnummer ein."
-            continue
-        fi
-        port=$new_port
-    done
-    msg_ok "Port ${GN}$port${CL} ist verfügbar."
-    echo "$port"  # Gibt den gültigen Port zurück
-}
-
+# Überprüfe, ob der gewählte Port verfügbar ist
 DEFAULT_PORT=$(check_port_available "$chosen_port")
 
 # Installationsprotokoll
@@ -349,6 +330,7 @@ while true; do
     fi
 done
 
+# Startbestätigung
 if ! confirm_step "Möchten Sie mit der Installation beginnen?"; then
     msg_error "Installation abgebrochen."
     exit 0
@@ -364,9 +346,6 @@ fi
 # Installationsschritte
 install_dependencies
 setup_project
-
-# Port-Prüfung
-check_port_available
 
 # Systemdienst erstellen
 create_systemd_service
