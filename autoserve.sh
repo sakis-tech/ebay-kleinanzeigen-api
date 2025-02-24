@@ -111,7 +111,7 @@ function check_port_available() {
         port=$new_port
     done
     DEFAULT_PORT=$port
-    msg_ok "Port ${GN}$DEFAULT_PORT${CL} ist verfügbar."
+    msg_ok "Port $DEFAULT_PORT$ ist verfügbar."
 }
 
 # Systemdienst erstellen
