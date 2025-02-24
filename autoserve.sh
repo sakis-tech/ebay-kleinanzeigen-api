@@ -190,15 +190,35 @@ function setup_project() {
 # Systemabhängigkeiten installieren
 function install_dependencies() {
     msg_info "Installiere Systemabhängigkeiten."
+
     local deps=(
+        # Basis-Entwicklungspakete
+        build-essential
+
+        # Für Python-Build
         zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev
         libssl-dev libreadline-dev libffi-dev libbz2-dev libsqlite3-dev
-        liblzma-dev tk-dev uuid-dev libgpm2 libxml2-dev libxmlsec1-dev mlocate
-        python3-packaging python3-venv
+        liblzma-dev tk-dev uuid-dev libexpat1-dev libgpm2 libxml2-dev
+        libxmlsec1-dev mlocate python3-packaging python3-venv
+
+        # Zusätzliche Pakete für Python-Module
+        libdb5.3-dev libdb-dev libgmp-dev libmpdec-dev libmpfr-dev
+        libbluetooth-dev libbz2-dev libcurl4-openssl-dev libffi-dev
+        liblzma-dev libncurses5-dev libncursesw5-dev libreadline-dev
+        libsqlite3-dev libssl-dev libxml2-dev libxslt1-dev
+
+        # Für Playwright/Chromium
+        libx11-xcb1 libdrm2 libgbm1 libasound2 libxcomposite1
+        libxrandr2 libxkbcommon0
+
+        # Optional: Debugging-Tools
+        gdb valgrind strace
     )
+
     if ! { sudo apt update >> "$LOG_FILE" 2>&1 && sudo apt install -y "${deps[@]}" >> "$LOG_FILE" 2>&1; }; then
         msg_error "Paketinstallation fehlgeschlagen - siehe $LOG_FILE"
     fi
+
     msg_ok "Systemabhängigkeiten installiert."
 }
 
