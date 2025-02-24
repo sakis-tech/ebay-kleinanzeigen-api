@@ -202,14 +202,15 @@ function install_dependencies() {
         libxmlsec1-dev mlocate python3-packaging python3-venv
 
         # Zusätzliche Pakete für Python-Module
-        libdb5.3-dev libdb-dev libgmp-dev libmpdec-dev libmpfr-dev
+        libdb5.3-dev libdb-dev libgmp-dev libmpfr-dev
         libbluetooth-dev libbz2-dev libcurl4-openssl-dev libffi-dev
         liblzma-dev libncurses5-dev libncursesw5-dev libreadline-dev
         libsqlite3-dev libssl-dev libxml2-dev libxslt1-dev
 
         # Für Playwright/Chromium
         libx11-xcb1 libdrm2 libgbm1 libasound2 libxcomposite1
-        libxrandr2 libxkbcommon0
+        libxrandr2 libxkbcommon0 libatk1.0-0 libatk-bridge2.0-0 libcups2
+		libxdamage1 libxfixes3 libpango-1.0-0 libcairo2 libatspi2.0-0
 
         # Optional: Debugging-Tools
         gdb valgrind strace
