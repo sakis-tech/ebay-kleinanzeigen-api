@@ -86,9 +86,9 @@ function install_prerequisites() {
     for tool in "${tools[@]}"; do
         if ! command -v $(echo "$tool" | cut -d '-' -f1) &>/dev/null; then
             msg_info "Installiere $tool..."
-            sudo apt update >> "$LOG_FILE" 2>&1 || \
+            sudo apt-get update >> "$LOG_FILE" 2>&1 || \
                 msg_error "Aktualisierung der Paketquellen fehlgeschlagen."
-            sudo apt install -y "$tool" >> "$LOG_FILE" 2>&1 || \
+            sudo apt-get install -y "$tool" >> "$LOG_FILE" 2>&1 || \
                 msg_error "Installation von $tool fehlgeschlagen."
         else
             msg_ok "$tool ist bereits installiert."
@@ -216,7 +216,7 @@ function install_dependencies() {
         gdb valgrind strace
     )
 
-    if ! { sudo apt update >> "$LOG_FILE" 2>&1 && sudo apt install -y "${deps[@]}" >> "$LOG_FILE" 2>&1; }; then
+    if ! { sudo apt-get update >> "$LOG_FILE" 2>&1 && sudo apt-get install -y "${deps[@]}" >> "$LOG_FILE" 2>&1; }; then
         msg_error "Paketinstallation fehlgeschlagen - siehe $LOG_FILE"
     fi
 
@@ -362,8 +362,8 @@ fi
 
 if confirm_step "Möchten Sie altes Paket-Cache löschen?"; then
     msg_info "Bereinige Paket-Cache!"
-    sudo apt autoremove -yq >> "$LOG_FILE" 2>&1
-    sudo apt clean -yq >> "$LOG_FILE" 2>&1
+    sudo apt-get autoremove -yq >> "$LOG_FILE" 2>&1
+    sudo apt-get clean -yq >> "$LOG_FILE" 2>&1
     msg_ok "Paket-Cache erfolgreich bereinigt."
 fi
 
