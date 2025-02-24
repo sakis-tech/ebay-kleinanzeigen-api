@@ -79,17 +79,15 @@ function confirm_step() {
     [[ $REPLY =~ ^[Yy]$ ]]
 }
 
-# Funktion zur Installation von Voraussetzungen
+# Prüfen und installieren von Voraussetzungen
 function install_prerequisites() {
-    msg_info "Installiere erforderliche Tools"
-    local tools=("net-tools" "curl" "build-essential" "git")
+    msg_info "Installiere erforderliche Tools und Abhängigkeiten..."
+    local tools=("net-tools" "curl" "build-essential" "git" "zlib1g-dev" "libssl-dev" "libncurses5-dev" "libgdbm-dev" "libnss3-dev" "libreadline-dev" "libffi-dev" "libbz2-dev" "libsqlite3-dev" "liblzma-dev" "tk-dev" "uuid-dev" "libexpat1-dev" "libgpm2" "libxml2-dev" "libxmlsec1-dev" "mlocate" "python3-packaging" "python3-venv")
     for tool in "${tools[@]}"; do
         if ! command -v $(echo "$tool" | cut -d '-' -f1) &>/dev/null; then
             msg_info "Installiere $tool..."
-            sudo apt-get update >> "$LOG_FILE" 2>&1 || \
-                msg_error "Aktualisierung der Paketquellen fehlgeschlagen."
-            sudo apt-get install -y "$tool" >> "$LOG_FILE" 2>&1 || \
-                msg_error "Installation von $tool fehlgeschlagen."
+            sudo apt-get update >> "$LOG_FILE" 2>&1 || msg_error "Aktualisierung der Paketquellen fehlgeschlagen."
+            sudo apt-get install -y "$tool" >> "$LOG_FILE" 2>&1 || msg_error "Installation von $tool fehlgeschlagen."
         else
             msg_ok "$tool ist bereits installiert."
         fi
@@ -151,7 +149,7 @@ function compile_python() {
         msg_error "Konfiguration fehlgeschlagen."
     local cores=$(nproc)
     msg_info "Kompilierung gestartet mit ${cores} Kernen - Bitte haben Sie Geduld."
-    make -j$((cores > 2 ? cores-1 : 1)) >> "$LOG_FILE" 2>&1 || \
+    make -j$(($cores > 2 ? cores-1 : 1)) >> "$LOG_FILE" 2>&1 || \
         msg_error "Kompilierung fehlgeschlagen - Details in $LOG_FILE."
     sudo make altinstall >> "$LOG_FILE" 2>&1 || \
         msg_error "Installation fehlgeschlagen."
