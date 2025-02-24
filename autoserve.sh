@@ -40,8 +40,6 @@ DEFAULT_PORT=8000                            # Standardport für die API
 LOG_FILE="/tmp/python_build.log"             # Log-Datei für Installationsschritte
 PYTHON_VERSION=""                            # Python-Version (wird später vom Benutzer eingegeben)
 
-header_info
-
 # --------------------------------------------------------------------------------
 # Funktionen
 # --------------------------------------------------------------------------------
