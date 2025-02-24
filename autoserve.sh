@@ -271,6 +271,8 @@ function check_api_health() {
 # Hauptausführung
 # --------------------------------------------------------------------------------
 
+header_info
+
 # Willkommensnachricht und Bestätigung
 msg_info "Willkommen bei der Einrichtung der Kleinanzeigen-API"
 echo -e "${GN}Dieses Skript führt Sie durch die Installation der Kleinanzeigen-API.${CL}"
