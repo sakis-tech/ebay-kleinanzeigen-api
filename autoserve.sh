@@ -282,7 +282,7 @@ read -n 1 -s -r -p "${YW}Drücken Sie eine beliebige Taste, um fortzufahren...${
 echo -e "\n"
 
 # Installation von Voraussetzungen
-if confirm_step "Möchten Sie erforderliche Tools (net-tools, curl, build-essential, git) installieren?"; then
+if confirm_step "Möchten Sie erforderliche Tools installieren?"; then
     install_prerequisites
 else
     msg_error "Die Installation wurde abgebrochen, da erforderliche Tools nicht installiert wurden."
