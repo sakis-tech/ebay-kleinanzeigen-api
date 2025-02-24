@@ -99,7 +99,7 @@ function install_prerequisites() {
 # Prüfen, ob der Port verfügbar ist
 function check_port_available() {
     local port=$1
-    while netstat -tuln | grep -q ":$port "; do
+    while netstat -tuln | awk -v p="$port" '$4 ~ ":"p"$" { exit 0 } END { exit 1 }'; do
         msg_error "Port ${YW}$port${RD} ist bereits belegt."
         read -p "${YW}Bitte geben Sie einen anderen Port ein: ${CL}" new_port
         if [[ -z "$new_port" ]]; then
