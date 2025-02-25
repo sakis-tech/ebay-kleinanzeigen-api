@@ -65,7 +65,7 @@ Während der Installation können Sie den Fortschritt und alle Aktionen, die im 
 Führen Sie den folgenden Befehl in einer separaten Terminal-Sitzung aus:
 
 ```bash
-tail -f /tmp/ebay-kleinanzeigen-api.txt
+tail -f /tmp/ebay-kleinanzeigen-api.log
 ```
 
 Dieser Befehl zeigt die fortlaufenden Logs der Installation in Echtzeit an. Sobald die Installation abgeschlossen ist, können Sie das ```tail```-Kommando durch Drücken von ```Ctrl + C``` beenden. 
