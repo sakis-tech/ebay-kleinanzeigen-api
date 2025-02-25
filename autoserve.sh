@@ -69,7 +69,7 @@ function msg_error() {
 
 # Funktion zur Installation von Voraussetzungen
 function install_prerequisites() {
-    local tools=("net-tools" "curl" "git")
+    local tools=("net-tools" "git")
     local tool_names=()
 
     # Erstelle eine Liste der zu installierenden Tools
