@@ -11,6 +11,27 @@ Mit diesem Skript wird die komplette Einrichtung eines Servers zur Ausführung d
 
 ---
 
+# Inhaltsverzeichnis
+
+1. **[Was macht das Skript?](#was-macht-das-skript)**  
+   - [Hauptfunktionen](#hauptfunktionen)  
+2. **[Zusätzliche Informationen](#zusätzliche-informationen)**  
+   - [Überwachung der Installation](#überwachung-der-installation)  
+3. **[Voraussetzungen](#voraussetzungen)**  
+4. **[Installation](#installation)**  
+   - [Schnelle Installation (Empfohlen)](#schnelle-installation-empfohlen)  
+   - [Manuelle Installation](#manuelle-installation)  
+5. **[Verwendung](#verwendung)**  
+   - [Service-Steuerung](#service-steuerung)  
+   - [API-Zugriff](#api-zugriff)  
+6. **[Konfiguration](#konfiguration)**  
+   - [Port ändern](#port-ändern)  
+7. **[Lizenz](#lizenz)**  
+8. **[Danksagung](#danksagung)**  
+9. **[Unterstütze das Projekt](#unterstütze-das-projekt)**  
+
+---
+
 ## 🚀 Was macht das Skript?
 
 ### **Hauptfunktionen:**
