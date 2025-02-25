@@ -69,18 +69,45 @@ function msg_error() {
 
 # Funktion zur Installation von Voraussetzungen
 function install_prerequisites() {
-    msg_info "Installiere erforderliche Tools"
     local tools=("net-tools" "curl" "git")
+    local tool_names=()
+
+    # Erstelle eine Liste der zu installierenden Tools
     for tool in "${tools[@]}"; do
         if ! command -v $(echo "$tool" | cut -d '-' -f1) &>/dev/null; then
-            sudo apt-get update >> "$LOG_FILE" 2>&1 || \
-                msg_error "Aktualisierung der Paketquellen fehlgeschlagen."
-            sudo apt-get install -y "$tool" >> "$LOG_FILE" 2>&1 || \
-                msg_error "Installation von $tool fehlgeschlagen."
-        else
-            msg_ok "$tool ist bereits installiert."
+            tool_names+=("$tool")
         fi
     done
+
+    # Zeige den Nutzerinformationen an, welche Tools fehlen
+    if [ ${#tool_names[@]} -eq 0 ]; then
+        msg_ok "Alle benötigten Tools sind bereits installiert."
+        return
+    fi
+
+    msg_info "Die folgenden Tools müssen noch installiert werden:"
+    for tool in "${tool_names[@]}"; do
+        echo -e "${YW}• $tool${CL}"
+    done
+
+    # Bestätigungsabfrage
+    if ! confirm_step "Möchten Sie diese Tools installieren?"; then
+        msg_error "Installation abgebrochen."
+    fi
+
+    # Aktualisiere die Paketquellen
+    msg_info "Aktualisiere Paketquellen..."
+    if ! sudo apt-get update >> "$LOG_FILE" 2>&1; then
+        msg_error "Aktualisierung der Paketquellen fehlgeschlagen."
+    fi
+
+    # Installiere die fehlenden Tools
+    msg_info "Installiere erforderliche Tools..."
+    if ! sudo apt-get install -y "${tool_names[@]}" >> "$LOG_FILE" 2>&1; then
+        msg_error "Installation der Tools fehlgeschlagen."
+    fi
+
+    msg_ok "Erforderliche Tools wurden erfolgreich installiert."
 }
 
 # Bestätigungsabfrage
