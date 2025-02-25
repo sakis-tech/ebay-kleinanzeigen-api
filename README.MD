@@ -1,7 +1,7 @@
 # Autonome Serverkonfiguration für eBay-Kleinanzeigen-API
 
-<div style="text-align:center">
-  <img src="https://i.imgur.com/i4iu51v.jpeg" />
+<div align="center">
+  <img src="https://i.imgur.com/i4iu51v.jpeg">
 </div>
 
 ------------
@@ -156,7 +156,9 @@ Ein besonderer Dank geht an den Entwickler von eBay-Kleinanzeigen-API:
 
 ## 💖 Unterstütze das Projekt
 
-Wenn dir dieses Projekt gefällt und du die Entwicklung unterstützen möchtest, kannst du gerne eine Spende über [Ko-fi](https://ko-fi.com/sakistech) hinterlassen.
+Wenn dir dieses Projekt gefällt und du die Entwicklung unterstützen möchtest, kannst du gerne eine Spende über Ko-fi hinterlassen.
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/J3J5NZMHT)
 
 Jede Unterstützung hilft, die Arbeit an diesem Projekt fortzusetzen und neue Funktionen zu entwickeln.
 
