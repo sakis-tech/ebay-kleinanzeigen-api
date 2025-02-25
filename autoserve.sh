@@ -67,6 +67,22 @@ function msg_error() {
     exit 1
 }
 
+# Funktion zur Installation von Voraussetzungen
+function install_prerequisites() {
+    msg_info "Installiere erforderliche Tools"
+    local tools=("net-tools" "curl" "git")
+    for tool in "${tools[@]}"; do
+        if ! command -v $(echo "$tool" | cut -d '-' -f1) &>/dev/null; then
+            sudo apt-get update >> "$LOG_FILE" 2>&1 || \
+                msg_error "Aktualisierung der Paketquellen fehlgeschlagen."
+            sudo apt-get install -y "$tool" >> "$LOG_FILE" 2>&1 || \
+                msg_error "Installation von $tool fehlgeschlagen."
+        else
+            msg_ok "$tool ist bereits installiert."
+        fi
+    done
+}
+
 # Bestätigungsabfrage
 function confirm_step() {
     echo -e "${YW}═══════════════════════════════════════════════════════════════════════════════"
@@ -142,22 +158,6 @@ WantedBy=multi-user.target"
     sudo systemctl restart kleinanzeigen-api.service || msg_error "Service konnte nicht gestartet werden."
 
     msg_ok "Systemdienst erfolgreich erstellt und gestartet."
-}
-
-# Funktion zur Installation von Voraussetzungen
-function install_prerequisites() {
-    msg_info "Installiere erforderliche Tools"
-    local tools=("net-tools" "curl" "git")
-    for tool in "${tools[@]}"; do
-        if ! command -v $(echo "$tool" | cut -d '-' -f1) &>/dev/null; then
-            sudo apt-get update >> "$LOG_FILE" 2>&1 || \
-                msg_error "Aktualisierung der Paketquellen fehlgeschlagen."
-            sudo apt-get install -y "$tool" >> "$LOG_FILE" 2>&1 || \
-                msg_error "Installation von $tool fehlgeschlagen."
-        else
-            msg_ok "$tool ist bereits installiert."
-        fi
-    done
 }
 
 # Funktion zur Aktualisierung von pip
@@ -298,6 +298,8 @@ echo -e "\n"
 read -n 1 -s -r -p "${YW}Drücken Sie eine beliebige Taste, um fortzufahren...${CL}"
 echo -e "\n"
 
+install_prerequisites
+
 # Python-Version Eingabe
 while true; do
     read -p "${YW}Gewünschte Python-Version eintragen und bestätigen (mind. 3.12.0): ${CL}" PYTHON_VERSION
@@ -320,7 +322,6 @@ if ! confirm_step "Möchten Sie mit der Installation beginnen?"; then
 fi
 
 # Installationsschritte
-install_prerequisites
 install_dependencies
 
 # Prüfe, ob Python bereits installiert ist
