@@ -16,9 +16,8 @@ function header_info {
     echo -e " / ___ / /_/ / /_/ /_/ /__/   __/  /  | |\033[1;34m/ / __/"
     echo -e "/_/  |_\\\\__,_/\\\\__/\\\\____/____/\\\\___/_/   |___\033[1;36m/\\\\___/"
     echo -e "\033[1;34m═══════════════════════════════════════════════════"
-    echo -e "\033[1;36m    Automatisierte Server-Einrichtung           "
+    echo -e "\033[1;36m    AutoServe | Kleinanzeigen-API Installer           "
     echo -e "\033[1;34m═══════════════════════════════════════════════════"
-    echo -e "\033[1;36m   Kleinanzeigen API | Modern Python Implementation\033[0m${CL}"
     echo
 }
 
