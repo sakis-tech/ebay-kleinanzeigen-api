@@ -32,12 +32,12 @@ CL=$(tput sgr0)     # Reset
 
 # Konfiguration der Variablen
 APP="Kleinanzeigen-API"
-INSTALL_DIR="/opt/kleinanzeigen-api"          # Installationsverzeichnis
-SERVICE_PATH="/etc/systemd/system/kleinanzeigen-api.service"  # Pfad zur Systemd-Service-Datei
+INSTALL_DIR="/opt/ebay-kleinanzeigen-api"          # Installationsverzeichnis
+SERVICE_PATH="/etc/systemd/system/ebay-kleinanzeigen-api.service"  # Pfad zur Systemd-Service-Datei
 BUILD_DIR="/usr/src/python_build"            # Build-Verzeichnis für Python-Kompilierung
 IP=$(hostname -I | awk '{print $1}')         # IP-Adresse des Servers
 DEFAULT_PORT=8000                            # Standardport für die API
-LOG_FILE="/tmp/kleinanzeigen-api.log"       # Log-Datei für Installationsschritte
+LOG_FILE="/tmp/ebay-kleinanzeigen-api.log"       # Log-Datei für Installationsschritte
 PYTHON_VERSION=""                            # Python-Version (wird später vom Benutzer eingegeben)
 
 # --------------------------------------------------------------------------------
@@ -181,8 +181,8 @@ WantedBy=multi-user.target"
 
     # Aktualisiere den systemd-Daemon und aktiviere den Dienst
     sudo systemctl daemon-reload || msg_error "Daemon-Reload fehlgeschlagen."
-    sudo systemctl enable kleinanzeigen-api.service || msg_error "Service konnte nicht aktiviert werden."
-    sudo systemctl restart kleinanzeigen-api.service || msg_error "Service konnte nicht gestartet werden."
+    sudo systemctl enable ebay-kleinanzeigen-api.service || msg_error "Service konnte nicht aktiviert werden."
+    sudo systemctl restart ebay-kleinanzeigen-api.service || msg_error "Service konnte nicht gestartet werden."
 
     msg_ok "Systemdienst erfolgreich erstellt und gestartet."
 }
@@ -373,15 +373,15 @@ echo -e "  ${YW}• Interaktive Dokumentation (Redoc):${CL} ${CY}http://$IP:$DEF
 
 echo -e "\033[1;34m══════════════════════════════════════════════════════════════════════════════"
 echo -e "${GN}Serviceverwaltung:${CL}"
-echo -e "  ${YW}• Starten:${CL} ${CY}sudo systemctl start kleinanzeigen-api.service${CL}"
-echo -e "  ${YW}• Stoppen:${CL} ${CY}sudo systemctl stop kleinanzeigen-api.service${CL}"
-echo -e "  ${YW}• Neustarten:${CL} ${CY}sudo systemctl restart kleinanzeigen-api.service${CL}"
-echo -e "  ${YW}• Status prüfen:${CL} ${CY}sudo systemctl status kleinanzeigen-api.service${CL}"
+echo -e "  ${YW}• Starten:${CL} ${CY}sudo systemctl start ebay-kleinanzeigen-api.service${CL}"
+echo -e "  ${YW}• Stoppen:${CL} ${CY}sudo systemctl stop ebay-kleinanzeigen-api.service${CL}"
+echo -e "  ${YW}• Neustarten:${CL} ${CY}sudo systemctl restart ebay-kleinanzeigen-api.service${CL}"
+echo -e "  ${YW}• Status prüfen:${CL} ${CY}sudo systemctl status ebay-kleinanzeigen-api.service${CL}"
 
 echo -e "\033[1;34m══════════════════════════════════════════════════════════════════════════════"
 echo -e "${GN}Protokolle und Logs:${CL}"
 echo -e "  ${YW}• Installationsprotokoll:${CL} ${CY}$LOG_FILE${CL}" 
-echo -e "  ${YW}• Dienstprotokoll:${CL} ${CY}journalctl -u kleinanzeigen-api.service${CL}"
+echo -e "  ${YW}• Dienstprotokoll:${CL} ${CY}journalctl -u ebay-kleinanzeigen-api.service${CL}"
 
 echo -e "\033[1;34m══════════════════════════════════════════════════════════════════════════════"
 echo -e "${GN}Hinweise:${CL}"
