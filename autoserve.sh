@@ -48,7 +48,7 @@ PYTHON_VERSION=""                            # Python-Version (wird später vom 
 function msg_info() {
     echo -e "${YW}═══════════════════════════════════════════════════════════════════════════════"
     echo -e "${YW}💡 ${1}${CL}"
-    echo -e " ${YW}═══════════════════════════════════════════════════════════════════════════════"
+    echo -e "${YW}═══════════════════════════════════════════════════════════════════════════════"
 }
 
 # Erfolgsnachricht
@@ -322,7 +322,7 @@ echo -e "  ${YW}• Einrichtung des API-Projekts mit virtueller Umgebung und erf
 echo -e "  ${YW}• Konfiguration eines Systemdienstes für die automatische API-Ausführung${CL}"
 echo -e "  ${YW}• Optional: Bereinigung temporärer Dateien und Cache-Optimierung${CL}"
 echo -e "\n"
-read -n 1 -s -r -p "${YW}Drücken Sie eine beliebige Taste, um fortzufahren...${CL}"
+read -n 1 -s -r -p "${CY}Drücken Sie eine beliebige Taste, um fortzufahren...${CL}"
 echo -e "\n"
 
 install_prerequisites
