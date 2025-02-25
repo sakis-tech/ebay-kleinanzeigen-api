@@ -32,13 +32,13 @@ CL=$(tput sgr0)     # Reset
 
 # Konfiguration der Variablen
 APP="Kleinanzeigen-API"
-INSTALL_DIR="/opt/ebay-kleinanzeigen-api"          # Installationsverzeichnis
-SERVICE_PATH="/etc/systemd/system/ebay-kleinanzeigen-api.service"  # Pfad zur Systemd-Service-Datei
-BUILD_DIR="/usr/src/python_build"            # Build-Verzeichnis für Python-Kompilierung
-IP=$(hostname -I | awk '{print $1}')         # IP-Adresse des Servers
-DEFAULT_PORT=8000                            # Standardport für die API
-LOG_FILE="/tmp/ebay-kleinanzeigen-api.log"       # Log-Datei für Installationsschritte
-PYTHON_VERSION=""                            # Python-Version (wird später vom Benutzer eingegeben)
+INSTALL_DIR="/opt/ebay-kleinanzeigen-api"                            # Installationsverzeichnis
+SERVICE_PATH="/etc/systemd/system/ebay-kleinanzeigen-api.service"    # Pfad zur Systemd-Service-Datei
+BUILD_DIR="/usr/src/python_build"                                    # Build-Verzeichnis für Python-Kompilierung
+IP=$(hostname -I | awk '{print $1}')                                 # IP-Adresse des Servers
+DEFAULT_PORT=8000                                                    # Standardport für die API
+LOG_FILE="/tmp/ebay-kleinanzeigen-api.log"                           # Log-Datei für Installationsschritte
+PYTHON_VERSION=""                                                    # Python-Version (wird später vom Benutzer eingegeben)
 
 # --------------------------------------------------------------------------------
 # Funktionen
@@ -63,7 +63,7 @@ function msg_error() {
     echo -e "${RD}═══════════════════════════════════════════════════════════════════════════════"
     echo -e "${RD}❎ ${1}${CL}"
     echo -e "${RD}═══════════════════════════════════════════════════════════════════════════════"
-    echo -e "${CL}"  # Terminalfarbe zurücksetzen
+    echo -e "${CL}"
     exit 1
 }
 
