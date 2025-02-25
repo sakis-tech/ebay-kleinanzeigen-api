@@ -17,7 +17,7 @@ function header_info {
     echo -e "/_/  |_\\\\__,_/\\\\__/\\\\____/____/\\\\___/_/   |___\033[1;36m/\\\\___/"
     echo -e "\033[1;36m       -- Autonome Serverkonfiguration --\033[0m${CL}"
     echo -e "\033[1;34m════════════════════════════════════════════════"
-    echo -e "\033[1;36m        Ebay Kleinanzeigen API Installer        "
+    echo -e "\033[1;36m        eBay-Kleinanzeigen API Installer        "
     echo -e "\033[1;34m════════════════════════════════════════════════"
     echo
 }
@@ -31,7 +31,6 @@ CY=$(tput setaf 6)  # Cyan
 CL=$(tput sgr0)     # Reset
 
 # Konfiguration der Variablen
-APP="Kleinanzeigen-API"
 INSTALL_DIR="/opt/ebay-kleinanzeigen-api"                            # Installationsverzeichnis
 SERVICE_PATH="/etc/systemd/system/ebay-kleinanzeigen-api.service"    # Pfad zur Systemd-Service-Datei
 BUILD_DIR="/usr/src/python_build"                                    # Build-Verzeichnis für Python-Kompilierung
@@ -160,7 +159,7 @@ function check_port_available() {
 # Systemdienst erstellen
 function create_systemd_service() {
     local service_content="[Unit]
-Description=Kleinanzeigen API Service
+Description=eBay-Kleinanzeigen API Service
 After=network.target
 
 [Service]
@@ -312,9 +311,9 @@ function compile_python() {
 
 header_info
 
-msg_info "Willkommen bei der Einrichtung der Kleinanzeigen-API"
+msg_info "Willkommen bei der Einrichtung der eBay-Kleinanzeigen-API"
 
-echo -e "${GN}Dieses Skript führt Sie durch die Installation der Kleinanzeigen-API.${CL}"
+echo -e "${GN}Dieses Skript führt Sie durch die Installation der eBay-Kleinanzeigen-API.${CL}"
 echo -e "${GN}Es werden automatisch folgende Schritte ausgeführt:${CL}"
 echo -e "  ${YW}• Überprüfung und Installierung der benötigten Systemabhängigkeiten${CL}"
 echo -e "  ${YW}• Kompilierung und Installation einer spezifischen Python-Version (mind. 3.12.0)${CL}"
@@ -365,7 +364,7 @@ create_systemd_service
 
 
 # Nach der Installation
-msg_ok "ebay-kleinanzeigen API wurde erfolgreich installiert!"
+msg_ok "eBay-kleinanzeigen API wurde erfolgreich installiert!"
 echo -e "\033[1;34m══════════════════════════════════════════════════════════════════════════════"
 echo -e "${GN}API-Zugriffspunkte:${CL}"
 echo -e "  ${YW}• Dokumentation (Swagger):${CL} ${CY}http://$IP:$DEFAULT_PORT/docs${CL}"
