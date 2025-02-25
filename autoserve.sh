@@ -11,14 +11,15 @@ clear
 
 function header_info {
     echo -e "\033[1;36m    ___         __      _____"
-    echo -e "   /   | __  __/ /_____/ ___/___  ______   \033[1;34m____"
-    echo -e "  / /| |/ / / / __/ __ \\\\__ \/ _ \/ ___/ |\033[1;36m / /_ \\"
-    echo -e " / ___ / /_/ / /_/ /_/ /__/   __/  /  | |\033[1;34m/ / __/"
-    echo -e "/_/  |_\\\\__,_/\\\\__/\\\\____/____/\\\\___/_/   |___\033[1;36m/\\\\___/"
-    echo -e "\033[1;36m       -- Autonome Serverkonfiguration --\033[0m${CL}"
-    echo -e "\033[1;34m════════════════════════════════════════════════"
-    echo -e "\033[1;36m        eBay-Kleinanzeigen API Installer        "
-    echo -e "\033[1;34m════════════════════════════════════════════════"
+    echo -e "   /   | __  __/ /_____/ ___/___  ______   "
+    echo -e "  / /| |/ / / / __/ __ \__ \/ _ \/ ___/ |"
+    echo -e " / ___ / /_/ / /_/ /_/ /__/   __/  /  | |"
+    echo -e "/_/  |_|\\__,_/\\__/\\____/____/\\___/_/   |___/"
+    echo -e "\033[1;34m═══════════════════════════════════════════════════"
+    echo -e "\033[1;36m    Autonome Serverkonfiguration           "
+    echo -e "\033[1;34m═══════════════════════════════════════════════════"
+    echo -e "\033[1;36m   eBay-Kleinanzeigen API Installer        "
+    echo -e "\033[1;34m═══════════════════════════════════════════════════"
     echo
 }
 
@@ -35,9 +36,9 @@ INSTALL_DIR="/opt/ebay-kleinanzeigen-api"                            # Installat
 SERVICE_PATH="/etc/systemd/system/ebay-kleinanzeigen-api.service"    # Pfad zur Systemd-Service-Datei
 BUILD_DIR="/usr/src/python_build"                                    # Build-Verzeichnis für Python-Kompilierung
 IP=$(hostname -I | awk '{print $1}')                                 # IP-Adresse des Servers
-DEFAULT_PORT=8000                                                    # Standardport für die API
+DEFAULT_PORT=8000                                                     # Standardport für die API
 LOG_FILE="/tmp/ebay-kleinanzeigen-api.log"                           # Log-Datei für Installationsschritte
-PYTHON_VERSION=""                                                    # Python-Version (wird später vom Benutzer eingegeben)
+PYTHON_VERSION=""                                                     # Python-Version (wird später vom Benutzer eingegeben)
 
 # --------------------------------------------------------------------------------
 # Funktionen
@@ -62,51 +63,8 @@ function msg_error() {
     echo -e "${RD}═══════════════════════════════════════════════════════════════════════════════"
     echo -e "${RD}❎ ${1}${CL}"
     echo -e "${RD}═══════════════════════════════════════════════════════════════════════════════"
-    echo -e "${CL}"
+    echo -e "${CL}"  # Terminalfarbe zurücksetzen
     exit 1
-}
-
-# Funktion zur Installation von Voraussetzungen
-function install_prerequisites() {
-    local tools=("net-tools" "git")
-    local tool_names=()
-
-    # Erstelle eine Liste der zu installierenden Tools
-    for tool in "${tools[@]}"; do
-        if ! command -v $(echo "$tool" | cut -d '-' -f1) &>/dev/null; then
-            tool_names+=("$tool")
-        fi
-    done
-
-    # Zeige den Nutzerinformationen an, welche Tools fehlen
-    if [ ${#tool_names[@]} -eq 0 ]; then
-        msg_ok "Alle benötigten Tools sind bereits installiert."
-        return
-    fi
-
-    msg_info "Die folgenden Tools müssen noch installiert werden:"
-    for tool in "${tool_names[@]}"; do
-        echo -e "${YW}• $tool${CL}"
-    done
-
-    # Bestätigungsabfrage
-    if ! confirm_step "Möchten Sie diese Tools installieren?"; then
-        msg_error "Installation abgebrochen."
-    fi
-
-    # Aktualisiere die Paketquellen
-    msg_info "Aktualisiere Paketquellen..."
-    if ! sudo apt-get update >> "$LOG_FILE" 2>&1; then
-        msg_error "Aktualisierung der Paketquellen fehlgeschlagen."
-    fi
-
-    # Installiere die fehlenden Tools
-    msg_info "Installiere erforderliche Tools..."
-    if ! sudo apt-get install -y "${tool_names[@]}" >> "$LOG_FILE" 2>&1; then
-        msg_error "Installation der Tools fehlgeschlagen."
-    fi
-
-    msg_ok "Erforderliche Tools wurden erfolgreich installiert."
 }
 
 # Bestätigungsabfrage
@@ -153,115 +111,48 @@ function check_port_available() {
         port=$new_port
     done
     DEFAULT_PORT=$port
-    msg_ok "Port $DEFAULT_PORT$ ist verfügbar."
-}
-
-# Systemdienst erstellen
-function create_systemd_service() {
-    local service_content="[Unit]
-Description=eBay-Kleinanzeigen API Service
-After=network.target
-
-[Service]
-User=$USER
-WorkingDirectory=$INSTALL_DIR
-ExecStart=$INSTALL_DIR/.venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port $DEFAULT_PORT
-Restart=always
-
-[Install]
-WantedBy=multi-user.target"
-
-    # Stelle sicher, dass das Zielverzeichnis existiert
-    sudo mkdir -p "$(dirname "$SERVICE_PATH")" || msg_error "Konnte Zielverzeichnis nicht erstellen."
-
-    # Schreibe den Inhalt der Systemdienst-Datei
-    echo "$service_content" | sudo tee "$SERVICE_PATH" > /dev/null || \
-        msg_error "Erstellung der Systemd-Service-Datei fehlgeschlagen."
-
-    # Aktualisiere den systemd-Daemon und aktiviere den Dienst
-    sudo systemctl daemon-reload || msg_error "Daemon-Reload fehlgeschlagen."
-    sudo systemctl enable ebay-kleinanzeigen-api.service || msg_error "Service konnte nicht aktiviert werden."
-    sudo systemctl restart ebay-kleinanzeigen-api.service || msg_error "Service konnte nicht gestartet werden."
-
-    msg_ok "Systemdienst erfolgreich erstellt und gestartet."
-}
-
-# Funktion zur Aktualisierung von pip
-function upgrade_pip() {
-    msg_info "Aktualisiere pip auf die neueste Version..."
-    python3 -m pip install --upgrade pip >> "$LOG_FILE" 2>&1 || \
-        msg_error "Pip-Aktualisierung fehlgeschlagen."
-    msg_ok "Pip wurde erfolgreich aktualisiert."
-}
-
-# Projekt einrichten
-function setup_project() {
-    msg_info "Richte Projekt ein"
-
-    # Überprüfe, ob das Installationsverzeichnis bereits existiert
-    if [ -d "$INSTALL_DIR" ]; then
-        msg_info "Verzeichnis $INSTALL_DIR existiert bereits. Aktualisiere Repository."
-        
-        # Stelle sicher, dass wir im richtigen Verzeichnis sind
-        cd "$INSTALL_DIR" || msg_error "Wechsel zu $INSTALL_DIR fehlgeschlagen."
-
-        # Führe git pull aus, um das Repository zu aktualisieren
-        git pull origin main || msg_error "Aktualisierung des Repositoriums fehlgeschlagen."
-    else
-        msg_info "Klone Repository nach $INSTALL_DIR"
-        
-        # Erstelle das Installationsverzeichnis
-        sudo mkdir -p "$INSTALL_DIR" || msg_error "Erstellung von $INSTALL_DIR fehlgeschlagen."
-        sudo chown -R $USER:$USER "$INSTALL_DIR" || msg_error "Berechtigungen für $INSTALL_DIR konnten nicht gesetzt werden."
-
-        # Klonen des Repositories
-        git clone -q https://github.com/sakis-tech/ebay-kleinanzeigen-api.git "$INSTALL_DIR" || \
-            msg_error "Klonen des Repositoriums fehlgeschlagen."
-
-        cd "$INSTALL_DIR" || msg_error "Wechsel zu $INSTALL_DIR fehlgeschlagen."
-    fi
-
-    # Überprüfe, ob die virtuelle Umgebung bereits existiert
-    if [ -d "$INSTALL_DIR/.venv" ]; then
-        msg_info "Virtuelle Umgebung in $INSTALL_DIR/.venv existiert bereits."
-    else
-        msg_info "Erstelle neue virtuelle Umgebung"
-        python3 -m venv .venv || msg_error "Erstellung der virtuellen Umgebung fehlgeschlagen."
-    fi
-
-    # Aktiviere die virtuelle Umgebung
-    source .venv/bin/activate || msg_error "Aktivierung der virtuellen Umgebung fehlgeschlagen."
-
-    # Pip aktualisieren
-    upgrade_pip
-
-    # Installiere Python-Pakete
-    msg_info "Installiere erforderliche Python-Pakete"
-    pip install -q -r requirements.txt || msg_error "Installation der Python-Pakete fehlgeschlagen."
-
-    # Installiere nur Chromium
-    msg_info "Installiere Chromium"
-    python -m playwright install chromium >> "$LOG_FILE" 2>&1 || \
-        msg_error "Playwright-Chromium-Installation fehlgeschlagen."
+    msg_ok "Port $DEFAULT_PORT ist verfügbar."
 }
 
 # Systemabhängigkeiten installieren
 function install_dependencies() {
     msg_info "Installiere Systemabhängigkeiten."
 
-    local deps=(
+    # Grundlegende Systemabhängigkeiten
+    local base_deps=(
         build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev
         libssl-dev libreadline-dev libffi-dev libbz2-dev libsqlite3-dev
         liblzma-dev tk-dev libdb5.3-dev uuid-dev libgpm2 libxml2-dev
-        libxmlsec1-dev mlocate libreadline-dev libffi-dev liblzma-dev lzma
-        python3-packaging python3-venv
+        libxmlsec1-dev mlocate python3-packaging python3-venv
     )
 
-    if ! { sudo apt-get update >> "$LOG_FILE" 2>&1 && sudo apt-get install -y "${deps[@]}" >> "$LOG_FILE" 2>&1; }; then
+    # Playwright-spezifische Abhängigkeiten
+    local playwright_deps=(
+        wget gnupg libnss3 libx11-xcb1 libxcomposite1 libasound2 libatk1.0-0
+        libcups2 libxdamage1 libxext6 libxfixes3 libxrandr2 libpangocairo-1.0-0
+        libxshmfence1 libgbm1 libgles2 libgl1-mesa-glx libegl1 xdg-utils 
+		libatk-bridge2.0-0 libxkbcommon0 libatspi2.0-0
+    )
+
+    # Kombiniere beide Listen
+    local all_deps=("${base_deps[@]}" "${playwright_deps[@]}")
+
+    # Installiere alle Abhängigkeiten
+    if ! { 
+        sudo apt-get update >> "$LOG_FILE" 2>&1 && 
+        sudo apt-get install -y "${all_deps[@]}" >> "$LOG_FILE" 2>&1; 
+    }; then
         msg_error "Paketinstallation fehlgeschlagen - siehe $LOG_FILE"
     fi
 
     msg_ok "Systemabhängigkeiten installiert."
+
+    # Installiere Playwright-Chromium
+    msg_info "Installiere Playwright-Chromium..."
+    source "$INSTALL_DIR/.venv/bin/activate" || msg_error "Aktivierung der virtuellen Umgebung fehlgeschlagen."
+    python -m playwright install chromium >> "$LOG_FILE" 2>&1 || \
+        msg_error "Playwright-Chromium-Installation fehlgeschlagen."
+    msg_ok "Playwright-Chromium erfolgreich installiert."
 }
 
 # Python kompilieren
@@ -305,6 +196,137 @@ function compile_python() {
     msg_ok "Python ${version} erfolgreich installiert."
 }
 
+# Voraussetzungen installieren
+function install_prerequisites() {
+    local tools=("net-tools" "curl" "git")
+    local tool_names=()
+
+    # Erstelle eine Liste der zu installierenden Tools
+    for tool in "${tools[@]}"; do
+        if ! command -v $(echo "$tool" | cut -d '-' -f1) &>/dev/null; then
+            tool_names+=("$tool")
+        fi
+    done
+
+    # Zeige den Nutzerinformationen an, welche Tools fehlen
+    if [ ${#tool_names[@]} -eq 0 ]; then
+        msg_ok "Alle benötigten Tools sind bereits installiert."
+        return
+    fi
+
+    msg_info "Die folgenden Tools müssen noch installiert werden:"
+    for tool in "${tool_names[@]}"; do
+        echo -e "${YW}• $tool${CL}"
+    done
+
+    # Bestätigungsabfrage
+    if ! confirm_step "Möchten Sie diese Tools installieren?"; then
+        msg_error "Installation abgebrochen."
+    fi
+
+    # Aktualisiere die Paketquellen
+    msg_info "Aktualisiere Paketquellen..."
+    if ! sudo apt-get update >> "$LOG_FILE" 2>&1; then
+        msg_error "Aktualisierung der Paketquellen fehlgeschlagen."
+    fi
+
+    # Installiere die fehlenden Tools
+    msg_info "Installiere erforderliche Tools..."
+    if ! sudo apt-get install -y "${tool_names[@]}" >> "$LOG_FILE" 2>&1; then
+        msg_error "Installation der Tools fehlgeschlagen."
+    fi
+
+    msg_ok "Erforderliche Tools wurden erfolgreich installiert."
+}
+
+# Python-Umgebung einrichten
+function setup_python_environment() {
+    msg_info "Richte Python-Umgebung ein"
+
+    # Stelle sicher, dass das Installationsverzeichnis existiert
+    sudo mkdir -p "$INSTALL_DIR" || msg_error "Erstellung von $INSTALL_DIR fehlgeschlagen."
+    sudo chown -R $USER:$USER "$INSTALL_DIR" || msg_error "Berechtigungen für $INSTALL_DIR konnten nicht gesetzt werden."
+
+    # Wechsel in das Installationsverzeichnis
+    cd "$INSTALL_DIR" || msg_error "Wechsel zu $INSTALL_DIR fehlgeschlagen."
+
+    # Überprüfe, ob die virtuelle Umgebung bereits existiert
+    if [ -d "$INSTALL_DIR/.venv" ]; then
+        msg_ok "Virtuelle Umgebung in $INSTALL_DIR/.venv existiert bereits."
+    else
+        msg_info "Erstelle neue virtuelle Umgebung"
+        python3 -m venv .venv || msg_error "Erstellung der virtuellen Umgebung fehlgeschlagen."
+    fi
+
+    # Aktiviere die virtuelle Umgebung
+    source "$INSTALL_DIR/.venv/bin/activate" || msg_error "Aktivierung der virtuellen Umgebung fehlgeschlagen."
+
+    # Pip aktualisieren
+    upgrade_pip
+
+    # Installiere Python-Pakete
+    msg_info "Installiere erforderliche Python-Pakete"
+    pip install -q -r requirements.txt || msg_error "Installation der Python-Pakete fehlgeschlagen."
+}
+
+# Funktion zur Aktualisierung von pip
+function upgrade_pip() {
+    msg_info "Aktualisiere pip auf die neueste Version..."
+    python3 -m pip install --upgrade pip >> "$LOG_FILE" 2>&1 || \
+        msg_error "Pip-Aktualisierung fehlgeschlagen."
+    msg_ok "Pip wurde erfolgreich aktualisiert."
+}
+
+# Projekt einrichten
+function setup_project() {
+    msg_info "Richte Projekt ein"
+
+    # Überprüfe, ob das Installationsverzeichnis bereits existiert
+    if [ -d "$INSTALL_DIR" ]; then
+        msg_info "Verzeichnis $INSTALL_DIR existiert bereits. Aktualisiere Repository."
+        
+        # Stelle sicher, dass wir im richtigen Verzeichnis sind
+        cd "$INSTALL_DIR" || msg_error "Wechsel zu $INSTALL_DIR fehlgeschlagen."
+        git pull origin main || msg_error "Aktualisierung des Repositoriums fehlgeschlagen."
+    else
+        msg_info "Klone Repository nach $INSTALL_DIR"
+        
+        # Klonen des Repositories
+        git clone -q https://github.com/sakis-tech/ebay-kleinanzeigen-api.git "$INSTALL_DIR" || \
+            msg_error "Klonen des Repositoriums fehlgeschlagen."
+        cd "$INSTALL_DIR" || msg_error "Wechsel zu $INSTALL_DIR fehlgeschlagen."
+    fi
+
+    msg_ok "Projekt erfolgreich eingerichtet."
+}
+
+# Systemdienst erstellen
+function create_systemd_service() {
+    local service_content="[Unit]
+Description=eBay-Kleinanzeigen API Service
+After=network.target
+
+[Service]
+User=$USER
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/.venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port $DEFAULT_PORT
+Restart=always
+
+[Install]
+WantedBy=multi-user.target"
+
+    # Schreibe den Inhalt der Systemdienst-Datei
+    echo "$service_content" | sudo tee "$SERVICE_PATH" > /dev/null || \
+        msg_error "Erstellung der Systemd-Service-Datei fehlgeschlagen."
+
+    # Aktualisiere den systemd-Daemon und aktiviere den Dienst
+    sudo systemctl daemon-reload || msg_error "Daemon-Reload fehlgeschlagen."
+    sudo systemctl enable ebay-kleinanzeigen-api.service || msg_error "Service konnte nicht aktiviert werden."
+    sudo systemctl restart ebay-kleinanzeigen-api.service || msg_error "Service konnte nicht gestartet werden."
+
+    msg_ok "Systemdienst erfolgreich erstellt und gestartet."
+}
+
 # --------------------------------------------------------------------------------
 # Hauptausführung
 # --------------------------------------------------------------------------------
@@ -317,13 +339,15 @@ echo -e "${GN}Dieses Skript führt Sie durch die Installation der eBay-Kleinanze
 echo -e "${GN}Es werden automatisch folgende Schritte ausgeführt:${CL}"
 echo -e "  ${YW}• Überprüfung und Installierung der benötigten Systemabhängigkeiten${CL}"
 echo -e "  ${YW}• Kompilierung und Installation einer spezifischen Python-Version (mind. 3.12.0)${CL}"
-echo -e "  ${YW}• Einrichtung des API-Projekts mit virtueller Umgebung und erforderlichen Paketen${CL}"
+echo -e "  ${YW}• Einrichtung der Python-Umgebung und Installation der Pakete${CL}"
+echo -e "  ${YW}• Einrichtung des API-Projekts mit Repository und Konfiguration${CL}"
 echo -e "  ${YW}• Konfiguration eines Systemdienstes für die automatische API-Ausführung${CL}"
 echo -e "  ${YW}• Optional: Bereinigung temporärer Dateien und Cache-Optimierung${CL}"
 echo -e "\n"
 read -n 1 -s -r -p "${CY}Drücken Sie eine beliebige Taste, um fortzufahren...${CL}"
 echo -e "\n"
 
+# Installationsschritte
 install_prerequisites
 
 # Python-Version Eingabe
@@ -357,14 +381,18 @@ else
     compile_python
 fi
 
+# Einrichten der Python-Umgebung
+setup_python_environment
+
+# Einrichten des Projekts
 setup_project
 
 # Systemdienst erstellen
 create_systemd_service
 
-
 # Nach der Installation
-msg_ok "eBay-kleinanzeigen API wurde erfolgreich installiert!"
+msg_ok "eBay-Kleinanzeigen API wurde erfolgreich installiert!"
+
 echo -e "\033[1;34m══════════════════════════════════════════════════════════════════════════════"
 echo -e "${GN}API-Zugriffspunkte:${CL}"
 echo -e "  ${YW}• Dokumentation (Swagger):${CL} ${CY}http://$IP:$DEFAULT_PORT/docs${CL}"
