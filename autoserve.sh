@@ -147,7 +147,7 @@ WantedBy=multi-user.target"
 # Funktion zur Installation von Voraussetzungen
 function install_prerequisites() {
     msg_info "Installiere erforderliche Tools"
-    local tools=("net-tools" "curl")
+    local tools=("net-tools" "curl" "git")
     for tool in "${tools[@]}"; do
         if ! command -v $(echo "$tool" | cut -d '-' -f1) &>/dev/null; then
             sudo apt-get update >> "$LOG_FILE" 2>&1 || \
