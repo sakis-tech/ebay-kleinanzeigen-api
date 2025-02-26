@@ -247,8 +247,17 @@ function compile_python() {
         msg_error "Konfiguration fehlgeschlagen."
 
     local cores=$(nproc)
-    make -j$((cores > 2 ? cores - 1 : 1)) >> "$LOG_FILE" 2>&1 || \
+    msg_info "Kompilierung gestartet mit ${cores} Kernen - Bitte haben Sie Geduld."
+    make -j$((cores > 2 ? cores-1 : 1)) >> "$LOG_FILE" 2>&1 || \
         msg_error "Kompilierung fehlgeschlagen - Details in $LOG_FILE."
+
+    sudo make altinstall >> "$LOG_FILE" 2>&1 || \
+        msg_error "Installation fehlgeschlagen."
+
+    sudo update-alternatives --install /usr/local/bin/python3 python3 "/usr/local/bin/python${version%.*}" 10 || \
+        msg_error "Update-Alternatives-Konfiguration fehlgeschlagen."
+    sudo update-alternatives --set python3 "/usr/local/bin/python${version%.*}" || \
+        msg_error "Setzen der Python-Version fehlgeschlagen."
 
     sudo make altinstall >> "$LOG_FILE" 2>&1 || \
         msg_error "Installation fehlgeschlagen."
