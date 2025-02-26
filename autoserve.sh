@@ -24,7 +24,7 @@ function header_info {
     echo -e "\033[1;34m════════════════════════════════════════════════"
     echo -e "\033[1;36m        eBay-Kleinanzeigen API Installer        "
     echo -e "\033[1;34m════════════════════════════════════════════════"
-    echo
+    echo -e "${CL}"
 }
 
 header_info
