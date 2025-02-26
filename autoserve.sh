@@ -97,7 +97,7 @@ function check_python_version() {
 
     local installed_version=$(python3 --version 2>&1 | cut -d ' ' -f 2)
     if [[ -z "$installed_version" ]]; then
-        msg_info "Keine Python-Version gefunden. Python wird kompiliert und installiert."
+        msg_info "Keine Python-Version gefunden. Python ${PYTHON_VERSION} wird kompiliert und installiert."
         return 1
     fi
 
@@ -106,9 +106,9 @@ function check_python_version() {
         # Informationsmeldung über die zu alte Version
         msg_info "Python-Version ($installed_version) ist zu alt."
 
-        # Separater Aufruf für die Bestätigungsabfrage
-        if confirm_step "Möchten Sie die ausgewählte Version installieren?"; then
-            msg_info "Python wird aktualisiert. Alte Version wird entfernt."
+        # Bestätigungsabfrage mit der ausgewählten und bestehenden Version
+        if confirm_step "Möchten Sie Python ${PYTHON_VERSION} installieren und Python $installed_version entfernen?"; then
+            msg_info "Python ${PYTHON_VERSION} wird installiert. Python $installed_version wird entfernt."
             remove_existing_python || msg_error "Entfernen der bestehenden Python-Version fehlgeschlagen."
             return 1
         else
@@ -120,11 +120,11 @@ function check_python_version() {
     msg_ok "Python $installed_version ist bereits installiert und erfüllt die Anforderungen."
 
     # Fragt den Benutzer, ob er die aktuelle Version behalten möchte
-    if confirm_step "Möchten Sie die installierte Python-Version behalten?"; then
+    if confirm_step "Möchten Sie die installierte Python-Version ($installed_version) behalten?"; then
         msg_ok "Die aktuelle Python-Version wird beibehalten."
         return 0
     else
-        msg_info "Python wird aktualisiert. Alte Version wird entfernt."
+        msg_info "Python ${PYTHON_VERSION} wird installiert. Python $installed_version wird entfernt."
         remove_existing_python || msg_error "Entfernen der bestehenden Python-Version fehlgeschlagen."
         return 1
     fi
@@ -252,17 +252,7 @@ function compile_python() {
 
     sudo make altinstall >> "$LOG_FILE" 2>&1 || \
         msg_error "Installation fehlgeschlagen."
-
-    # Registriere Python-Version bei update-alternatives
-    sudo update-alternatives --install /usr/local/bin/python3 python3 "/usr/local/bin/python${version%.*}" 10 || \
-        msg_error "Update-Alternatives-Konfiguration fehlgeschlagen."
-    sudo update-alternatives --set python3 "/usr/local/bin/python${version%.*}" || \
-        msg_error "Setzen der Python-Version fehlgeschlagen."
-
-    # Setze symbolischen Link für python3
-    sudo ln -sf "/usr/local/bin/python${version%.*}" /usr/bin/python3 || \
-        msg_error "Symbolischer Link für python3 konnte nicht erstellt werden."
-
+        
     msg_ok "Python ${version} erfolgreich installiert."
 }
 
