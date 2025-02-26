@@ -171,7 +171,7 @@ function check_python_version() {
 
     IFS='.' read -r -a parts <<< "$installed_version"
     if (( ${parts[0]} < 3 )) || (( ${parts[1]} < 12 )); then
-        msg_warn "Python-Version ($installed_version) ist zu alt."
+        msg_warn "Gefunden: Python-Version ($installed_version). Version ist zu alt."
         if confirm_step "Möchten Sie Python ${PYTHON_VERSION} mit pyenv installieren?"; then
             msg_info "Python ${PYTHON_VERSION} wird mit pyenv installiert."
             return 1
